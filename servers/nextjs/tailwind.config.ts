@@ -13,6 +13,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Decky Brand Colors
+        "deep-navy": "hsl(var(--deep-navy))",
+        "electric-orange": "hsl(var(--electric-orange))",
+        "bright-teal": "hsl(var(--bright-teal))",
+
+        // Neutrals
+        "pure-white": "hsl(var(--pure-white))",
+        "light-gray": "hsl(var(--light-gray))",
+        "medium-gray": "hsl(var(--medium-gray))",
+        "dark-gray": "hsl(var(--dark-gray))",
+
+        // Status Colors
+        "success-green": "hsl(var(--success-green))",
+        "warning-yellow": "hsl(var(--warning-yellow))",
+        "error-red": "hsl(var(--error-red))",
+        "info-blue": "hsl(var(--info-blue))",
+
+        // Shadcn/UI Compatible
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -82,15 +100,42 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontFamily: {
+        inter: ["Inter", "var(--font-inter)", "sans-serif"],
         instrument_sans: ["var(--font-instrument-sans)"],
-        inter: ["var(--font-inter)"],
         roboto: ["var(--font-roboto)"],
+      },
+      fontSize: {
+        // Decky Typography Scale
+        hero: [
+          "64px",
+          { lineHeight: "1.1", fontWeight: "700", letterSpacing: "-1px" },
+        ],
+        section: [
+          "48px",
+          { lineHeight: "1.2", fontWeight: "700", letterSpacing: "-0.5px" },
+        ],
+        subsection: ["36px", { lineHeight: "1.3", fontWeight: "700" }],
+        component: ["24px", { lineHeight: "1.4", fontWeight: "600" }],
+        label: ["20px", { lineHeight: "1.5", fontWeight: "600" }],
+        "small-label": ["18px", { lineHeight: "1.5", fontWeight: "500" }],
+        "body-large": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+        body: ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+        "body-small": ["14px", { lineHeight: "1.5", fontWeight: "500" }],
+        caption: ["12px", { lineHeight: "1.4", fontWeight: "500" }],
+      },
+      spacing: {
+        // 8pt spacing system
+        "1": "4px",
+        "2": "8px",
+        "4": "16px",
+        "6": "24px",
+        "8": "32px",
+        "12": "48px",
+        "16": "64px",
+        "24": "96px",
       },
     },
   },
-  plugins: [
-    require("tailwindcss-animate"),
-    require("@tailwindcss/typography"),
-  ],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 };
 export default config;

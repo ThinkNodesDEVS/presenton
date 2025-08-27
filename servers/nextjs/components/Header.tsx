@@ -1,26 +1,60 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Layout, Plus } from "lucide-react";
 
 const Header: React.FC = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="w-full border-b bg-white/60 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo-white.png" alt="Presenton" className="h-6 w-auto" />
+    <header
+      className={`w-full sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? "glass-nav border-b border-deep-navy/10"
+          : "bg-pure-white border-b border-transparent"
+      }`}
+    >
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <div className="flex h-20 items-center justify-between">
+          {/* Logo Section */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="text-component font-bold text-deep-navy transition-colors group-hover:text-electric-orange">
+              Decky
+            </div>
+            <div className="hidden sm:block text-body-small text-medium-gray">
+              The AI Agent That Creates Impressive Presentations
+            </div>
           </Link>
 
-          <nav className="flex items-center gap-4">
-            <Link href="/custom-layout" className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900">
+          {/* Navigation */}
+          <nav className="flex items-center gap-8">
+            <Link
+              href="/custom-layout"
+              className="inline-flex items-center gap-2 text-deep-navy hover:text-electric-orange transition-colors duration-200"
+            >
               <Plus className="w-5 h-5" />
-              <span className="text-sm font-medium font-inter">Create Template</span>
+              <span className="text-body font-medium font-inter">
+                Create Template
+              </span>
             </Link>
-            <Link href="/template-preview" className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900">
+            <Link
+              href="/template-preview"
+              className="inline-flex items-center gap-2 text-deep-navy hover:text-electric-orange transition-colors duration-200"
+            >
               <Layout className="w-5 h-5" />
-              <span className="text-sm font-medium font-inter">Templates</span>
+              <span className="text-body font-medium font-inter">
+                Templates
+              </span>
             </Link>
           </nav>
         </div>

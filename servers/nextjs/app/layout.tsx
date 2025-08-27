@@ -29,14 +29,15 @@ const roboto = Roboto({
   variable: "--font-roboto",
 });
 
-
 export const metadata: Metadata = {
-  metadataBase: new URL("https://presenton.ai"),
-  title: "Presenton - Open Source AI presentation generator",
+  metadataBase: new URL("https://decky.ai"),
+  title: "Decky - The AI Agent That Creates Impressive Presentations",
   description:
-    "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
+    "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
   keywords: [
     "AI presentation generator",
+    "Decky",
+    "presentation AI agent",
     "data storytelling",
     "data visualization tool",
     "AI data presentation",
@@ -44,33 +45,34 @@ export const metadata: Metadata = {
     "data to presentation",
     "interactive presentations",
     "professional slides",
+    "from idea to impressive",
   ],
   openGraph: {
-    title: "Presenton - Open Source AI presentation generator",
+    title: "Decky - The AI Agent That Creates Impressive Presentations",
     description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    url: "https://presenton.ai",
-    siteName: "Presenton",
+      "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
+    url: "https://decky.ai",
+    siteName: "Decky",
     images: [
       {
-        url: "https://presenton.ai/presenton-feature-graphics.png",
+        url: "https://decky.ai/decky-feature-graphics.png",
         width: 1200,
         height: 630,
-        alt: "Presenton Logo",
+        alt: "Decky Logo",
       },
     ],
     type: "website",
     locale: "en_US",
   },
   alternates: {
-    canonical: "https://presenton.ai",
+    canonical: "https://decky.ai",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Presenton - Open Source AI presentation generator",
+    title: "Decky - The AI Agent That Creates Impressive Presentations",
     description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    images: ["https://presenton.ai/presenton-feature-graphics.png"],
+      "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
+    images: ["https://decky.ai/decky-feature-graphics.png"],
   },
 };
 
@@ -79,7 +81,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
     <html lang="en">
       <body
@@ -87,9 +88,7 @@ export default function RootLayout({
       >
         <Providers>
           <MixpanelInitializer>
-            <LayoutProvider>
-              {children}
-            </LayoutProvider>
+            <LayoutProvider>{children}</LayoutProvider>
           </MixpanelInitializer>
         </Providers>
         <Toaster position="top-center" />
