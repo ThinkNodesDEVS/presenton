@@ -30,6 +30,8 @@ services:
       - WEB_GROUNDING=${WEB_GROUNDING}
       - DATABASE_URL=${DATABASE_URL}
       - DISABLE_ANONYMOUS_TRACKING=${DISABLE_ANONYMOUS_TRACKING}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 
   production-gpu:
     # image: ghcr.io/presenton/presenton:latest
@@ -80,6 +82,9 @@ services:
       - .:/app
       - ./app_data:/app_data
       - /app/servers/nextjs/node_modules
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS}
       - LLM=${LLM}
@@ -99,8 +104,9 @@ services:
       - TOOL_CALLS=${TOOL_CALLS}
       - DISABLE_THINKING=${DISABLE_THINKING}
       - WEB_GROUNDING=${WEB_GROUNDING}
-      - DATABASE_URL=${DATABASE_URL}
       - DISABLE_ANONYMOUS_TRACKING=${DISABLE_ANONYMOUS_TRACKING}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 
   development-gpu:
     build:
@@ -138,5 +144,4 @@ services:
       - TOOL_CALLS=${TOOL_CALLS}
       - DISABLE_THINKING=${DISABLE_THINKING}
       - WEB_GROUNDING=${WEB_GROUNDING}
-      - DATABASE_URL=${DATABASE_URL}
       - DISABLE_ANONYMOUS_TRACKING=${DISABLE_ANONYMOUS_TRACKING}
