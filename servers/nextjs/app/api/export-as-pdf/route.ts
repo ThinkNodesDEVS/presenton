@@ -86,7 +86,8 @@ export async function POST(req: NextRequest) {
   }
   const key = `users/${userId}/exports/${filename}`;
 
-  const body = new Blob([pdfBuffer], { type: 'application/pdf' });
+  // Convert Node Buffer -> ArrayBuffer for fetch body (avoids SharedArrayBuffer type issues)
+  const body = await new Response(pdfBuffer).arrayBuffer();
   const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${key}` as string, {
     method: 'PUT',
     headers: {
