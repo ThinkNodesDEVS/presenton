@@ -3,10 +3,10 @@ import shutil
 import tempfile
 import subprocess
 from typing import List, Optional
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
 
-from utils.asset_directory_utils import get_images_directory
+from services.storage import SupabaseStorage, build_user_key
 from utils.randomizers import get_random_uuid
 from constants.documents import PDF_MIME_TYPES
 
@@ -27,7 +27,8 @@ class PdfSlidesResponse(BaseModel):
 
 @PDF_SLIDES_ROUTER.post("/process", response_model=PdfSlidesResponse)
 async def process_pdf_slides(
-    pdf_file: UploadFile = File(..., description="PDF file to process")
+    pdf_file: UploadFile = File(..., description="PDF file to process"),
+    request: Request = None,
 ):
     """
     Process a PDF file to extract slide screenshots.
@@ -66,25 +67,23 @@ async def process_pdf_slides(
             screenshot_paths = await _generate_pdf_screenshots(pdf_path, temp_dir)
             print(f"Generated {len(screenshot_paths)} PDF screenshots")
             
-            # Move screenshots to images directory and generate URLs
-            images_dir = get_images_directory()
+            # Upload screenshots to Supabase Storage and generate URLs
+            storage = SupabaseStorage()
+            user = getattr(request.state, "user", None) or {}
+            user_id = user.get("user_id") if isinstance(user, dict) else "public"
             presentation_id = get_random_uuid()
-            presentation_images_dir = os.path.join(images_dir, presentation_id)
-            os.makedirs(presentation_images_dir, exist_ok=True)
             
             slides_data = []
             
             for i, screenshot_path in enumerate(screenshot_paths, 1):
-                # Move screenshot to permanent location
                 screenshot_filename = f"slide_{i}.png"
-                permanent_screenshot_path = os.path.join(presentation_images_dir, screenshot_filename)
-                
                 if os.path.exists(screenshot_path) and os.path.getsize(screenshot_path) > 0:
-                    # Use shutil.copy2 instead of os.rename to handle cross-device moves
-                    shutil.copy2(screenshot_path, permanent_screenshot_path)
-                    screenshot_url = f"/app_data/images/{presentation_id}/{screenshot_filename}"
+                    with open(screenshot_path, 'rb') as f:
+                        content = f.read()
+                    key = build_user_key(user_id, "images", f"{presentation_id}/{screenshot_filename}")
+                    await storage.save(key, content, content_type="image/png")
+                    screenshot_url = await storage.get_signed_url(key, expires_in=3600)
                 else:
-                    # Fallback if screenshot generation failed or file is empty placeholder
                     screenshot_url = "/static/images/placeholder.jpg"
                 
                 slides_data.append(PdfSlideData(

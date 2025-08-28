@@ -1,17 +1,18 @@
-export const getHeader = () => {
-  return {
+"use client";
+
+export const getHeader = async () => {
+  const token = await (globalThis as any)?.Clerk?.session?.getToken({ template: 'decky-api' });
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Accept: "application/json",  
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Accept: "application/json",
   };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
 };
 
-export const getHeaderForFormData = () => {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization",
-  };
+export const getHeaderForFormData = async () => {
+  const token = await (globalThis as any)?.Clerk?.session?.getToken({ template: 'decky-api' });
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return headers;
 };
