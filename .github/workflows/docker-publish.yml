@@ -23,3 +23,14 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: docker.io/thinknodes/presentation:latest
+
+      - name: Trigger Render deploy
+        if: github.ref == 'refs/heads/main'
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not set; skipping deploy trigger";
+            exit 0;
+          fi
+          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"

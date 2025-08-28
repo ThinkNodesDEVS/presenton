@@ -79,6 +79,7 @@ services:
     volumes:
       - .:/app
       - ./app_data:/app_data
+      - /app/servers/nextjs/node_modules
     environment:
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS}
       - LLM=${LLM}
@@ -117,6 +118,7 @@ services:
     volumes:
       - .:/app
       - ./app_data:/app_data
+      - /app/servers/nextjs/node_modules
     environment:
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS}
       - LLM=${LLM}

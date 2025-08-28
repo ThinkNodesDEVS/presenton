@@ -95,3 +95,16 @@ def get_extended_reasoning_env():
 
 def get_web_grounding_env():
     return os.getenv("WEB_GROUNDING")
+
+
+# Supabase
+def get_supabase_url_env():
+    return os.getenv("SUPABASE_URL")
+
+
+def get_supabase_service_role_key_env():
+    return os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+
+def get_supabase_bucket_env():
+    return os.getenv("SUPABASE_STORAGE_BUCKET")
