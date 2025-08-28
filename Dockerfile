@@ -47,6 +47,11 @@ COPY servers/nextjs/ /app/servers/nextjs/
 
 # Build the Next.js app
 WORKDIR /app/servers/nextjs
+# Add build args for Clerk (these will be passed from GitHub Actions)
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG CLERK_SECRET_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+ENV CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 RUN npm run build
 
 WORKDIR /app
