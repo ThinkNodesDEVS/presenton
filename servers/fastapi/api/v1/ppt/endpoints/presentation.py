@@ -3,7 +3,7 @@ import json
 import os
 import random
 from typing import Annotated, List, Literal, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ from services.icon_finder_service import IconFinderService
 from services.image_generation_service import ImageGenerationService
 from utils.dict_utils import deep_update
 from utils.export_utils import export_presentation
+from fastapi import Header
 from utils.llm_calls.generate_presentation_outlines import generate_ppt_outline
 from models.sql.slide import SlideModel
 from models.sse_response import SSECompleteResponse, SSEResponse
@@ -49,7 +50,7 @@ PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
 
 @PRESENTATION_ROUTER.get("", response_model=PresentationWithSlides)
 async def get_presentation(
-    id: str, sql_session: AsyncSession = Depends(get_async_session)
+    id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
     presentation = await sql_session.get(PresentationModel, id)
     if not presentation:
@@ -67,7 +68,7 @@ async def get_presentation(
 
 @PRESENTATION_ROUTER.delete("", status_code=204)
 async def delete_presentation(
-    id: str, sql_session: AsyncSession = Depends(get_async_session)
+    id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
     presentation = await sql_session.get(PresentationModel, id)
     if not presentation:
@@ -79,7 +80,7 @@ async def delete_presentation(
 
 
 @PRESENTATION_ROUTER.get("/all", response_model=List[PresentationWithSlides])
-async def get_all_presentations(sql_session: AsyncSession = Depends(get_async_session)):
+async def get_all_presentations(request: Request, sql_session: AsyncSession = Depends(get_async_session)):
     presentations_with_slides = []
     presentations = await sql_session.scalars(select(PresentationModel))
 
@@ -109,6 +110,7 @@ async def create_presentation(
     language: Annotated[str, Body()],
     file_paths: Annotated[Optional[List[str]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
+    request: Request = None,
 ):
     presentation_id = get_random_uuid()
 
@@ -133,6 +135,7 @@ async def prepare_presentation(
     layout: Annotated[PresentationLayoutModel, Body()],
     title: Annotated[Optional[str], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
+    request: Request = None,
 ):
     if not outlines:
         raise HTTPException(status_code=400, detail="Outlines are required")
@@ -177,7 +180,7 @@ async def prepare_presentation(
 
 @PRESENTATION_ROUTER.get("/stream", response_model=PresentationWithSlides)
 async def stream_presentation(
-    presentation_id: str, sql_session: AsyncSession = Depends(get_async_session)
+    presentation_id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
     presentation = await sql_session.get(PresentationModel, presentation_id)
     if not presentation:
@@ -193,7 +196,9 @@ async def stream_presentation(
             detail="Outlines can not be empty",
         )
 
-    image_generation_service = ImageGenerationService(get_images_directory())
+    user = getattr(request.state, "user", None) or {}
+    user_id = user.get("user_id") if isinstance(user, dict) else None
+    image_generation_service = ImageGenerationService(get_images_directory(), user_id=user_id or "public")
     icon_finder_service = IconFinderService()
 
     async def inner():
@@ -270,6 +275,7 @@ async def stream_presentation(
 async def update_presentation(
     presentation_with_slides: Annotated[PresentationWithSlides, Body()],
     sql_session: AsyncSession = Depends(get_async_session),
+    request: Request = None,
 ):
     updated_presentation = presentation_with_slides.to_presentation_model()
     updated_slides = presentation_with_slides.slides
@@ -312,6 +318,7 @@ async def create_pptx(
 async def generate_presentation_api(
     request: GeneratePresentationRequest,
     sql_session: AsyncSession = Depends(get_async_session),
+    req: Request = None,
 ):
     presentation_id = get_random_uuid()
 
@@ -379,7 +386,9 @@ async def generate_presentation_api(
         structure=presentation_structure.model_dump(),
     )
 
-    image_generation_service = ImageGenerationService(get_images_directory())
+    user = getattr(req.state, "user", None) or {}
+    user_id = user.get("user_id") if isinstance(user, dict) else None
+    image_generation_service = ImageGenerationService(get_images_directory(), user_id=user_id or "public")
     icon_finder_service = IconFinderService()
     async_asset_generation_tasks = []
 
@@ -420,8 +429,11 @@ async def generate_presentation_api(
     await sql_session.commit()
 
     # 9. Export
+    # Extract user id if available from upstream auth layer (placeholder: pass None)
+    # Use authenticated user id for storage keying
+    user_id = user_id or None
     presentation_and_path = await export_presentation(
-        presentation_id, presentation.title or get_random_uuid(), request.export_as
+        presentation_id, presentation.title or get_random_uuid(), request.export_as, user_id
     )
 
     return PresentationPathAndEditPath(

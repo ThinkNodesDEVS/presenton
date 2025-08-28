@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import { Roboto, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkLoaded } from "@clerk/nextjs";
 import MixpanelInitializer from "./MixpanelInitializer";
 import { LayoutProvider } from "./(presentation-generator)/context/LayoutContext";
 import { Toaster } from "@/components/ui/sonner";
@@ -86,11 +88,18 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${roboto.variable} ${instrument_sans.variable} antialiased`}
       >
-        <Providers>
-          <MixpanelInitializer>
-            <LayoutProvider>{children}</LayoutProvider>
-          </MixpanelInitializer>
-        </Providers>
+
+        <ClerkProvider>
+          <Providers>
+            <MixpanelInitializer>
+              <LayoutProvider>
+                <ClerkLoaded>
+                  {children}
+                </ClerkLoaded>
+              </LayoutProvider>
+            </MixpanelInitializer>
+          </Providers>
+        </ClerkProvider>
         <Toaster position="top-center" />
       </body>
     </html>

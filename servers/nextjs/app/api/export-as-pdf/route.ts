@@ -1,5 +1,6 @@
-import path from 'path';
-import fs from 'fs';
+// No node path/fs needed; we upload directly to Supabase
+// Use global fetch provided by Next.js runtime
+import { auth } from '@clerk/nextjs/server';
 import puppeteer from 'puppeteer';
 
 import { sanitizeFilename } from '@/app/(presentation-generator)/utils/others';
@@ -69,12 +70,54 @@ export async function POST(req: NextRequest) {
   browser.close();
 
   const sanitizedTitle = sanitizeFilename(title ?? 'presentation');
-  const destinationPath = path.join(process.env.APP_DATA_DIRECTORY!, 'exports', `${sanitizedTitle}.pdf`);
-  await fs.promises.mkdir(path.dirname(destinationPath), { recursive: true });
-  await fs.promises.writeFile(destinationPath, pdfBuffer);
+  const filename = `${sanitizedTitle}.pdf`;
 
-  return NextResponse.json({
-    success: true,
-    path: destinationPath
+  // Upload to Supabase Storage via REST (using service role key on the server)
+  const supabaseUrl = process.env.SUPABASE_URL as string;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET as string;
+  if (!supabaseUrl || !supabaseKey || !bucket) {
+    return NextResponse.json({ error: 'Supabase storage not configured' }, { status: 500 });
+  }
+
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const key = `users/${userId}/exports/${filename}`;
+
+  const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${key}` as string, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${supabaseKey}`,
+      'apikey': supabaseKey,
+      'Content-Type': 'application/pdf'
+    },
+    body: pdfBuffer
   });
+
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text();
+    return NextResponse.json({ error: `Upload failed: ${uploadRes.status} ${text}` }, { status: 500 });
+  }
+
+  // Create signed URL (1 hour)
+  const signRes = await fetch(`${supabaseUrl}/storage/v1/object/sign/${bucket}` as string, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${supabaseKey}`,
+      'apikey': supabaseKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: 3600, paths: [key] })
+  });
+  if (!signRes.ok) {
+    const text = await signRes.text();
+    return NextResponse.json({ error: `Sign failed: ${signRes.status} ${text}` }, { status: 500 });
+  }
+  const signJson = await signRes.json() as any[];
+  const signed = signJson?.[0]?.signedURL || signJson?.[0]?.signedUrl;
+  const signedUrl = `${supabaseUrl}/storage/v1/object/sign/${bucket}/${signed}`;
+
+  return NextResponse.json({ success: true, path: signedUrl });
 }

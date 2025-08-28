@@ -5,14 +5,14 @@ import tempfile
 import subprocess
 import uuid
 from typing import List, Optional, Dict
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
 import aiohttp
 import asyncio
 import xml.etree.ElementTree as ET
 import re
 
-from utils.asset_directory_utils import get_images_directory
+from services.storage import SupabaseStorage, build_user_key
 from utils.randomizers import get_random_uuid
 from constants.documents import POWERPOINT_TYPES
 
@@ -256,7 +256,8 @@ async def analyze_fonts_in_all_slides(slide_xmls: List[str]) -> FontAnalysisResu
 @PPTX_SLIDES_ROUTER.post("/process", response_model=PptxSlidesResponse)
 async def process_pptx_slides(
     pptx_file: UploadFile = File(..., description="PPTX file to process"),
-    fonts: Optional[List[UploadFile]] = File(None, description="Optional font files")
+    fonts: Optional[List[UploadFile]] = File(None, description="Optional font files"),
+    request: Request = None,
 ):
     """
     Process a PPTX file to extract slide screenshots and XML content.
@@ -306,25 +307,24 @@ async def process_pptx_slides(
             font_analysis = await analyze_fonts_in_all_slides(slide_xmls)
             print(f"Font analysis completed: {len(font_analysis.internally_supported_fonts)} supported, {len(font_analysis.not_supported_fonts)} not supported")
             
-            # Move screenshots to images directory and generate URLs
-            images_dir = get_images_directory()
+            # Upload screenshots to Supabase Storage and generate signed URLs
+            storage = SupabaseStorage()
+            user = getattr(request.state, "user", None) or {}
+            user_id = user.get("user_id") if isinstance(user, dict) else "public"
             presentation_id = get_random_uuid()
-            presentation_images_dir = os.path.join(images_dir, presentation_id)
-            os.makedirs(presentation_images_dir, exist_ok=True)
             
             slides_data = []
             
             for i, (xml_content, screenshot_path) in enumerate(zip(slide_xmls, screenshot_paths), 1):
-                # Move screenshot to permanent location
+                # Upload to Supabase if file exists and non-empty
                 screenshot_filename = f"slide_{i}.png"
-                permanent_screenshot_path = os.path.join(presentation_images_dir, screenshot_filename)
-                
                 if os.path.exists(screenshot_path) and os.path.getsize(screenshot_path) > 0:
-                    # Use shutil.copy2 instead of os.rename to handle cross-device moves
-                    shutil.copy2(screenshot_path, permanent_screenshot_path)
-                    screenshot_url = f"/app_data/images/{presentation_id}/{screenshot_filename}"
+                    with open(screenshot_path, 'rb') as f:
+                        content = f.read()
+                    key = build_user_key(user_id, "images", f"{presentation_id}/{screenshot_filename}")
+                    await storage.save(key, content, content_type="image/png")
+                    screenshot_url = await storage.get_signed_url(key, expires_in=3600)
                 else:
-                    # Fallback if screenshot generation failed or file is empty placeholder
                     screenshot_url = "/static/images/placeholder.jpg"
                 
                 # Compute normalized fonts for this slide

@@ -3,7 +3,7 @@
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
-import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,12 +36,24 @@ const setupNodeModules = () => {
   const nextjsNodeModulesPath = join(nextjsDir, 'node_modules');
 
   if (existsSync(nodeDependenciesPath)) {
-    if (existsSync(nextjsNodeModulesPath)) {
-      rmSync(nextjsNodeModulesPath, { recursive: true, force: true });
+    const targetExists = existsSync(nextjsNodeModulesPath);
+    if (!targetExists) {
+      cpSync(nodeDependenciesPath, nextjsNodeModulesPath, { recursive: true });
+      console.log('Initialized node_modules from /node_dependencies');
+      return;
     }
-
-    cpSync(nodeDependenciesPath, nextjsNodeModulesPath, { recursive: true });
-    console.log('Copied node_modules from /node_dependencies to Next.js server directory');
+    // If target exists (e.g., mounted volume), only populate if empty; do not remove mountpoint
+    try {
+      const entries = readdirSync(nextjsNodeModulesPath);
+      if (!entries || entries.length === 0) {
+        cpSync(nodeDependenciesPath, nextjsNodeModulesPath, { recursive: true });
+        console.log('Populated empty node_modules from /node_dependencies');
+      } else {
+        console.log('node_modules already present; skipping copy');
+      }
+    } catch (err) {
+      console.warn('Could not inspect node_modules; skipping copy:', err?.message || err);
+    }
   }
 };
 
