@@ -1,9 +1,7 @@
-import Home from "@/components/Home"
+import EnhancedLandingPage from "@/components/EnhancedLandingPage";
 
 const page = () => {
-    return (
-        <Home />
-    )
-}
+  return <EnhancedLandingPage />;
+};
 
-export default page
+export default page;
