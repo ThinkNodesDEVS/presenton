@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
   }
   const key = `users/${userId}/exports/${filename}`;
 
+  const body = new Blob([pdfBuffer], { type: 'application/pdf' });
   const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${key}` as string, {
     method: 'PUT',
     headers: {
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       'apikey': supabaseKey,
       'Content-Type': 'application/pdf'
     },
-    body: pdfBuffer
+    body
   });
 
   if (!uploadRes.ok) {
