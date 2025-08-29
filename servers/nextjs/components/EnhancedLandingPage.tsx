@@ -115,14 +115,14 @@ export default function EnhancedLandingPage() {
 
             {/* Enhanced Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              <nav className="flex items-center space-x-8">
+              {/* <nav className="flex items-center space-x-8">
                 <a
                   href="#features"
                   className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
                 >
                   Features
                 </a>
-              </nav>
+              </nav> */}
               <button
                 onClick={() => setIsSignUpOpen(true)}
                 className="bg-gradient-to-r from-[#066678] to-[#005264] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25 relative overflow-hidden group"
@@ -147,14 +147,14 @@ export default function EnhancedLandingPage() {
         {isMenuOpen && (
           <div className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 shadow-lg">
             <div className="container mx-auto px-6 py-6 space-y-4">
-              <nav className="space-y-4">
+              {/* <nav className="space-y-4">
                 <a
                   href="#features"
                   className="block text-gray-600 hover:text-gray-900 transition-colors font-medium"
                 >
                   Features
                 </a>
-              </nav>
+              </nav> */}
               <button
                 onClick={() => {
                   setIsSignUpOpen(true);
@@ -194,7 +194,7 @@ export default function EnhancedLandingPage() {
                 <span className="relative inline-block">
                   <span
                     key={currentPhraseIndex}
-                    className="bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent animate-fadeIn"
+                    className="bg-gradient-to-r from-[#FF6B35] to-[#dd947a] bg-clip-text text-transparent animate-fadeIn"
                   >
                     {rotatingPhrases[currentPhraseIndex]}
                   </span>
@@ -261,9 +261,7 @@ export default function EnhancedLandingPage() {
                         size={48}
                         className="mx-auto mb-4 opacity-80"
                       />
-                      <div className="text-lg font-semibold">
-                        Q4 Sales Report
-                      </div>
+                      <div className="text-lg font-semibold">Sales Report</div>
                       <div className="text-sm opacity-80">
                         Professional Template
                       </div>
@@ -279,15 +277,15 @@ export default function EnhancedLandingPage() {
                 {/* Floating Elements */}
                 <div className="absolute -top-6 -right-6 bg-white rounded-2xl shadow-lg p-4 animate-float">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="text-green-500" size={20} />
+                    <CheckCircle className="text-[#FF6B35]" size={20} />
                     <span className="text-sm font-medium">AI Generated</span>
                   </div>
                 </div>
 
                 <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-lg p-4 animate-float-delayed">
                   <div className="flex items-center gap-2">
-                    <Clock className="text-blue-500" size={20} />
-                    <span className="text-sm font-medium">2 min creation</span>
+                    <Clock className="text-[#FF6B35]" size={20} />
+                    <span className="text-sm font-medium">1 min creation</span>
                   </div>
                 </div>
               </div>
@@ -304,16 +302,10 @@ export default function EnhancedLandingPage() {
         <div className="container mx-auto max-w-7xl">
           {/* Section Header */}
           <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 bg-[#066678]/10 rounded-full border border-[#066678]/20 mb-6">
-              <Star className="w-4 h-4 text-[#066678] mr-2" />
-              <span className="text-sm font-semibold text-[#066678]">
-                Why Choose Decky
-              </span>
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
               Everything you need to create
               <br />
-              <span className="bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#dd947a] bg-clip-text text-transparent">
                 impressive presentations
               </span>
             </h2>
@@ -339,59 +331,6 @@ export default function EnhancedLandingPage() {
       </section>
 
       {/* Enhanced How It Works Section */}
-      <section id="how-it-works" className="py-24 px-6">
-        <div className="container mx-auto max-w-7xl">
-          {/* Section Header */}
-          <div className="text-center mb-20">
-            <div className="inline-flex items-center px-4 py-2 bg-[#066678]/10 rounded-full border border-[#066678]/20 mb-6">
-              <Zap className="w-4 h-4 text-[#066678] mr-2" />
-              <span className="text-sm font-semibold text-[#066678]">
-                Simple Process
-              </span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              From idea to presentation
-              <br />
-              <span className="bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent">
-                in three simple steps
-              </span>
-            </h2>
-          </div>
-
-          {/* Steps */}
-          <div className="grid lg:grid-cols-3 gap-12">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={index}
-                  className="relative group"
-                  style={{ animationDelay: step.delay }}
-                >
-                  {/* Connection Line */}
-                  {index < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-[#066678]/20 to-transparent transform translate-x-8 -translate-y-1/2"></div>
-                  )}
-
-                  <div className="text-center lg:text-left">
-                    {/* Icon */}
-                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6 mx-auto lg:mx-0 group-hover:bg-[#066678]/10 transition-colors duration-300">
-                      <Icon className="text-[#066678]" size={28} />
-                    </div>
-
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                      {step.title}
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed max-w-sm mx-auto lg:mx-0">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       {/* Device Compatibility Section */}
       <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white">
@@ -400,7 +339,7 @@ export default function EnhancedLandingPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
               Works seamlessly across
               <br />
-              <span className="bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6B35] to-[#dd947a] bg-clip-text text-transparent">
                 all your devices
               </span>
             </h2>
@@ -410,7 +349,7 @@ export default function EnhancedLandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-3 gap-8 max-w-4xl mx-auto">
             {[
               {
                 icon: Monitor,
@@ -427,13 +366,15 @@ export default function EnhancedLandingPage() {
               const Icon = device.icon;
               return (
                 <div key={index} className="text-center group">
-                  <div className="w-20 h-20 bg-gradient-to-r from-[#066678] to-[#005264] rounded-3xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-300">
+                  <div className="size-16 md:size-20 bg-gradient-to-r from-[#066678] to-[#005264] rounded-3xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-300">
                     <Icon className="text-white" size={32} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2">
                     {device.title}
                   </h3>
-                  <p className="text-gray-600">{device.desc}</p>
+                  <p className="text-gray-600 text-sm md:text-base">
+                    {device.desc}
+                  </p>
                 </div>
               );
             })}
@@ -467,8 +408,8 @@ export default function EnhancedLandingPage() {
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
             Create your first presentation
             <br />
-            <span className="bg-gradient-to-r from-[#00D4AA] to-[#066678] bg-clip-text text-transparent">
-              in under 5 minutes
+            <span className=" bg-gradient-to-r from-[#FF6B35] to-[#dd947a] bg-clip-text text-transparent">
+              in under a minute
             </span>
           </h2>
 
@@ -491,13 +432,6 @@ export default function EnhancedLandingPage() {
                 />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
-
-            <button className="group px-12 py-4 rounded-2xl text-lg font-semibold border-2 border-white/30 text-white hover:border-white hover:bg-white/10 transition-all duration-300">
-              <span className="flex items-center justify-center gap-2">
-                <Play size={20} />
-                Watch Demo
-              </span>
             </button>
           </div>
 
