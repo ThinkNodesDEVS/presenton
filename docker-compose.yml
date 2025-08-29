@@ -82,9 +82,6 @@ services:
       - .:/app
       - ./app_data:/app_data
       - /app/servers/nextjs/node_modules
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
     environment:
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS}
       - LLM=${LLM}
