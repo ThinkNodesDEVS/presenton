@@ -51,6 +51,7 @@ jobs:
         with:
           service: ${{ env.SERVICE }}
           region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
           image: ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.SERVICE }}:${{ github.sha }}
           env_vars: |
             CAN_CHANGE_KEYS=${{ secrets.CAN_CHANGE_KEYS }}
