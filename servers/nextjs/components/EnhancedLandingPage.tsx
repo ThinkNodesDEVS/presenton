@@ -261,7 +261,9 @@ export default function EnhancedLandingPage() {
                         size={48}
                         className="mx-auto mb-4 opacity-80"
                       />
-                      <div className="text-lg font-semibold">Sales Report</div>
+                      <div className="text-lg font-semibold">
+                        Revenue Growth Plan
+                      </div>
                       <div className="text-sm opacity-80">
                         Professional Template
                       </div>
