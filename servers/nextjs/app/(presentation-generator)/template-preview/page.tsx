@@ -7,6 +7,7 @@ import { ExternalLink } from "lucide-react";
 import Header from "@/app/(presentation-generator)/dashboard/components/Header";
 import { useLayout } from "../context/LayoutContext";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { getHeader } from "../services/api/header";
 
 const LayoutPreview = () => {
   const {
@@ -36,9 +37,11 @@ const LayoutPreview = () => {
 
   useEffect(() => {
     // Fetch summary to map custom group slug to template meta and last updated time
-    fetch("/api/v1/ppt/template-management/summary")
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchSummary = async () => {
+      try {
+        const headers = await getHeader();
+        const response = await fetch("/api/v1/ppt/template-management/summary", { headers });
+        const data = await response.json();
         const map: Record<string, { lastUpdatedAt?: number; name?: string; description?: string }> = {};
         if (data && Array.isArray(data.presentations)) {
           for (const p of data.presentations) {
@@ -51,8 +54,11 @@ const LayoutPreview = () => {
           }
         }
         setSummaryMap(map);
-      })
-      .catch(() => setSummaryMap({}));
+      } catch (error) {
+        setSummaryMap({});
+      }
+    };
+    fetchSummary();
   }, []);
 
   // Transform context data to match expected format

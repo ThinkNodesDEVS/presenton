@@ -13,6 +13,7 @@ import { useDispatch } from "react-redux";
 import { setLayoutLoading } from "@/store/slices/presentationGeneration";
 import * as Babel from "@babel/standalone";
 import * as Recharts from "recharts";
+import { getHeader } from "../services/api/header";
 export interface LayoutInfo {
   id: string;
   name?: string;
@@ -345,8 +346,10 @@ export const LayoutProvider: React.FC<{
     const groupedLayouts = new Map<string, LayoutInfo[]>();
     const fullDataByGroup = new Map<string, FullDataInfo[]>();
     try {
+      const headers = await getHeader();
       const customGroupResponse = await fetch(
-        "/api/v1/ppt/template-management/summary"
+        "/api/v1/ppt/template-management/summary",
+        { headers }
       );
       const customGroupData = await customGroupResponse.json();
       
@@ -360,7 +363,8 @@ export const LayoutProvider: React.FC<{
         }
         const presentationId = group.presentation_id;
         const customLayoutResponse = await fetch(
-          `/api/v1/ppt/template-management/get-templates/${presentationId}`
+          `/api/v1/ppt/template-management/get-templates/${presentationId}`,
+          { headers }
         );
         const customLayoutsData = await customLayoutResponse.json();
         const allLayout = customLayoutsData.layouts;
