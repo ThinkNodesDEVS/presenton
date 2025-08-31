@@ -5,9 +5,9 @@ import ssl
 
 
 def get_database_url_and_connect_args() -> tuple[str, dict]:
-    database_url = get_database_url_env() or "sqlite:///" + os.path.join(
-        get_app_data_directory_env() or "/tmp/presenton", "fastapi.db"
-    )
+    database_url = get_database_url_env()
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable must be set")
 
     if database_url.startswith("sqlite://"):
         database_url = database_url.replace("sqlite://", "sqlite+aiosqlite://", 1)

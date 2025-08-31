@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import { useLayout } from "../../context/LayoutContext";
 import GroupLayouts from "./GroupLayouts";
+import { getHeader } from "../../services/api/header";
 
 import { LayoutGroup } from "../types/index";
 interface LayoutSelectionProps {
@@ -25,9 +26,11 @@ const LayoutSelection: React.FC<LayoutSelectionProps> = ({
 
     useEffect(() => {
         // Fetch custom templates summary to get last_updated_at and template meta for sorting and display
-        fetch("/api/v1/ppt/template-management/summary")
-            .then(res => res.json())
-            .then(data => {
+        const fetchSummary = async () => {
+            try {
+                const headers = await getHeader();
+                const response = await fetch("/api/v1/ppt/template-management/summary", { headers });
+                const data = await response.json();
                 const map: Record<string, { lastUpdatedAt?: number; name?: string; description?: string }> = {};
                 if (data && Array.isArray(data.presentations)) {
                     for (const p of data.presentations) {
@@ -40,8 +43,11 @@ const LayoutSelection: React.FC<LayoutSelectionProps> = ({
                     }
                 }
                 setSummaryMap(map);
-            })
-            .catch(() => setSummaryMap({}));
+            } catch (error) {
+                setSummaryMap({});
+            }
+        };
+        fetchSummary();
     }, []);
 
     const layoutGroups: LayoutGroup[] = React.useMemo(() => {
