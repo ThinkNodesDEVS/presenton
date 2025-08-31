@@ -23,6 +23,8 @@ import SignUpModal from "./SignUpModal";
 import Aurora from "./Aurora";
 import DeckyBento from "./DeckyBento";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const rotatingPhrases = [
   "Close deals",
@@ -106,11 +108,7 @@ export default function EnhancedLandingPage() {
           <div className="flex items-center justify-between">
             {/* Enhanced Logo */}
             <div className="flex items-center space-x-2">
-              <Image src="/logo.png" alt="Decky Logo" width={50} height={50} />
-
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent">
-                Decky
-              </h1>
+              <Image src="/logo.png" alt="Decky Logo" width={55} height={55} />
             </div>
 
             {/* Enhanced Desktop Navigation */}
@@ -123,13 +121,13 @@ export default function EnhancedLandingPage() {
                   Features
                 </a>
               </nav> */}
-              <button
+              <Button
                 onClick={() => setIsSignUpOpen(true)}
-                className="bg-gradient-to-r from-[#066678] to-[#005264] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25 relative overflow-hidden group"
+                className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
+                size="lg"
               >
-                <span className="relative z-10">Get Started Free</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#005264] to-[#066678] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
+                Get Started Free
+              </Button>
             </div>
 
             {/* Mobile Menu Button */}
@@ -155,15 +153,16 @@ export default function EnhancedLandingPage() {
                   Features
                 </a>
               </nav> */}
-              <button
+              <Button
                 onClick={() => {
                   setIsSignUpOpen(true);
                   setIsMenuOpen(false);
                 }}
-                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white px-6 py-3 rounded-xl font-semibold"
+                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white rounded-xl font-semibold"
+                size="lg"
               >
                 Get Started Free
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -214,19 +213,17 @@ export default function EnhancedLandingPage() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
-                <button
+                <Button
                   onClick={() => setIsSignUpOpen(true)}
-                  className="group bg-gradient-to-r from-[#066678] to-[#005264] text-white px-10 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30 relative overflow-hidden"
+                  className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-10 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
+                  size="lg"
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    Start Creating Free
-                    <ArrowRight
-                      className="transition-transform group-hover:translate-x-1"
-                      size={20}
-                    />
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                </button>
+                  Start Creating Free
+                  <ArrowRight
+                    className="transition-transform group-hover:translate-x-1"
+                    size={20}
+                  />
+                </Button>
 
                 {/* <button className="group px-10 py-4 rounded-2xl text-lg font-semibold border-2 border-gray-300 text-gray-700 hover:border-[#066678] hover:text-[#066678] transition-all duration-300">
                   <span className="flex items-center justify-center gap-2">
@@ -296,6 +293,8 @@ export default function EnhancedLandingPage() {
         </div>
       </section>
 
+      <Separator className="bg-gray-200" />
+
       {/* Enhanced Features Section */}
       <section
         id="features"
@@ -332,7 +331,7 @@ export default function EnhancedLandingPage() {
         </div>
       </section>
 
-      {/* Enhanced How It Works Section */}
+      <Separator className="bg-gray-200" />
 
       {/* Device Compatibility Section */}
       <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white">
@@ -384,6 +383,8 @@ export default function EnhancedLandingPage() {
         </div>
       </section>
 
+      <Separator className="bg-gray-200" />
+
       {/* Enhanced Final CTA Section */}
       <section className="relative py-24 px-6 bg-gray-900 overflow-hidden">
         {/* Aurora Background */}
@@ -400,11 +401,11 @@ export default function EnhancedLandingPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 to-gray-900/60 pointer-events-none"></div>
 
         <div className="container mx-auto max-w-4xl text-center relative z-10">
-          <div className="inline-flex items-center px-4 py-2 bg-white/10 rounded-full border border-white/20 mb-8">
-            <Sparkles className="w-4 h-4 text-white mr-2" />
-            <span className="text-sm font-semibold text-white">
+          <div className="mb-8 flex justify-center">
+            <div className="inline-flex items-center justify-center rounded-md border bg-white/10 text-white border-white/20 px-4 py-2 text-sm font-semibold">
+              <Sparkles className="w-4 h-4 mr-2" />
               Ready to Get Started?
-            </span>
+            </div>
           </div>
 
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
@@ -422,34 +423,32 @@ export default function EnhancedLandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <button
+            <Button
               onClick={() => setIsSignUpOpen(true)}
-              className="group bg-gradient-to-r from-[#066678] to-[#005264] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30 relative overflow-hidden"
+              className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
+              size="lg"
             >
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Start Creating Free
-                <ArrowRight
-                  className="transition-transform group-hover:translate-x-1"
-                  size={20}
-                />
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
+              Start Creating Free
+              <ArrowRight
+                className="transition-transform group-hover:translate-x-1"
+                size={20}
+              />
+            </Button>
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-col sm:flex-row gap-8 justify-center items-center text-gray-400">
-            <div className="flex items-center gap-2">
-              <CheckCircle size={16} />
-              <span className="text-sm">No credit card required</span>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="inline-flex items-center justify-center rounded-md border text-gray-300 border-gray-600 px-3 py-1 text-sm">
+              <CheckCircle size={14} className="mr-2" />
+              No credit card required
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle size={16} />
-              <span className="text-sm">Free forever plan</span>
+            <div className="inline-flex items-center justify-center rounded-md border text-gray-300 border-gray-600 px-3 py-1 text-sm">
+              <CheckCircle size={14} className="mr-2" />
+              Free forever plan
             </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle size={16} />
-              <span className="text-sm">Cancel anytime</span>
+            <div className="inline-flex items-center justify-center rounded-md border text-gray-300 border-gray-600 px-3 py-1 text-sm">
+              <CheckCircle size={14} className="mr-2" />
+              Cancel anytime
             </div>
           </div>
         </div>
@@ -465,13 +464,9 @@ export default function EnhancedLandingPage() {
                 <Image
                   src="/logo.png"
                   alt="Decky Logo"
-                  width={50}
-                  height={50}
+                  width={60}
+                  height={60}
                 />
-
-                <h2 className="text-xl font-bold bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent">
-                  Decky
-                </h2>
               </div>
               <p className="text-gray-400 max-w-md mb-6">
                 The AI-powered presentation tool that transforms your ideas into
@@ -481,111 +476,13 @@ export default function EnhancedLandingPage() {
                 {/* Social Links would go here */}
               </div>
             </div>
-
-            {/* Product Links */}
-            <div>
-              <h3 className="text-white font-semibold mb-4">Product</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Templates
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Enterprise
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Support Links */}
-            <div>
-              <h3 className="text-white font-semibold mb-4">Support</h3>
-              <ul className="space-y-2">
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Help Center
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Contact
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Privacy
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    Terms
-                  </a>
-                </li>
-              </ul>
-            </div>
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-end items-center">
             <p className="text-gray-400 text-sm">
               © 2024 Decky. All rights reserved.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Status
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Changelog
-              </a>
-              <a
-                href="#"
-                className="text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                API
-              </a>
-            </div>
           </div>
         </div>
       </footer>
