@@ -103,15 +103,28 @@ const setupUserConfigFromEnv = () => {
 
 const startServers = async () => {
   console.log(`🚀 Starting FastAPI server on port ${fastapiPort}...`);
+  console.log(`📁 FastAPI working directory: ${fastapiDir}`);
+  console.log(`🐍 Python command: python server.py --port ${fastapiPort} --reload ${isDev}`);
+  
   const fastApiProcess = spawn(
     "python",
     ["server.py", "--port", fastapiPort.toString(), "--reload", isDev],
     {
       cwd: fastapiDir,
-      stdio: "inherit",
+      stdio: ["pipe", "pipe", "pipe"], // Capture stdout/stderr separately
       env: process.env,
     },
   );
+
+  // Capture and log FastAPI stdout
+  fastApiProcess.stdout.on('data', (data) => {
+    console.log(`[FastAPI STDOUT] ${data.toString().trim()}`);
+  });
+
+  // Capture and log FastAPI stderr - THIS IS KEY!
+  fastApiProcess.stderr.on('data', (data) => {
+    console.error(`[FastAPI STDERR] ${data.toString().trim()}`);
+  });
 
   fastApiProcess.on("error", (err) => {
     console.error("❌ FastAPI process failed to start:", err);
@@ -120,6 +133,21 @@ const startServers = async () => {
   fastApiProcess.on("exit", (code, signal) => {
     console.error(`💥 FastAPI process exited with code ${code}, signal ${signal}`);
   });
+
+  // Add startup health check
+  setTimeout(async () => {
+    try {
+      console.log("🔍 Checking if FastAPI server is responding...");
+      const response = await fetch(`http://localhost:${fastapiPort}/health`);
+      if (response.ok) {
+        console.log("✅ FastAPI server health check passed");
+      } else {
+        console.error(`❌ FastAPI health check failed with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("❌ FastAPI health check failed:", error.message);
+    }
+  }, 5000); // Check after 5 seconds
 
   console.log(`🔧 Starting MCP server on port ${appmcpPort}...`);
   const appmcpProcess = spawn(
