@@ -2,7 +2,7 @@
 
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -282,3 +282,26 @@ if (canChangeKeys) {
 
 startServers();
 startNginx();
+
+// Add periodic memory check
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  console.log(`💾 Memory: ${Math.round(memUsage.rss / 1024 / 1024)}MB RSS, ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB Heap`);
+}, 30000);
+
+// Add this after the health check setTimeout
+setTimeout(async () => {
+  console.log("🔍 Checking port bindings...");
+  
+  // Check if ports are actually open
+  exec('netstat -tulnp | grep ":8000\\|:3000"', (error, stdout, stderr) => {
+    if (stdout) {
+      console.log("📡 Open ports:", stdout);
+    } else {
+      console.error("❌ No servers listening on ports 3000/8000");
+      if (stderr) {
+        console.error("📡 Port check stderr:", stderr);
+      }
+    }
+  });
+}, 10000); // Check after 10 seconds
