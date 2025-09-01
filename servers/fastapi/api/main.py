@@ -8,6 +8,14 @@ import aiohttp
 from functools import lru_cache
 import time
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("presenton-backend")
 
 
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
@@ -59,6 +67,18 @@ async def require_user(request: Request):
 
 app = FastAPI(lifespan=app_lifespan)
 
+logger.info("FastAPI backend server initializing...")
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    logger.info("Health check requested")
+    return {"status": "healthy", "service": "presenton-backend", "timestamp": time.time()}
+
+# Heartbeat endpoint for monitoring
+@app.get("/heartbeat")
+async def heartbeat():
+    return {"status": "alive", "timestamp": time.time()}
 
 # Routers
 app.include_router(API_V1_PPT_ROUTER, dependencies=[Depends(require_user)])
