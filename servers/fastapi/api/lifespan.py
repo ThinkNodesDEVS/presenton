@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import os
+import logging
 
 from fastapi import FastAPI
 
@@ -9,6 +10,8 @@ from utils.model_availability import (
     check_llm_and_image_provider_api_or_model_availability,
 )
 
+logger = logging.getLogger("presenton-backend")
+
 
 @asynccontextmanager
 async def app_lifespan(_: FastAPI):
@@ -17,7 +20,24 @@ async def app_lifespan(_: FastAPI):
     Initializes the application data directory and checks LLM model availability.
 
     """
-    os.makedirs(get_app_data_directory_env(), exist_ok=True)
-    await create_db_and_tables()
-    await check_llm_and_image_provider_api_or_model_availability()
-    yield
+    logger.info("🚀 Backend server starting up...")
+    
+    try:
+        logger.info("Creating app data directory...")
+        os.makedirs(get_app_data_directory_env(), exist_ok=True)
+        
+        logger.info("Initializing database...")
+        await create_db_and_tables()
+        
+        logger.info("Checking LLM and image provider availability...")
+        await check_llm_and_image_provider_api_or_model_availability()
+        
+        logger.info("✅ Backend server startup completed successfully")
+        
+        yield
+        
+    except Exception as e:
+        logger.error(f"❌ Backend server startup failed: {e}")
+        raise
+    finally:
+        logger.info("🛑 Backend server shutting down...")

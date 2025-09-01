@@ -102,6 +102,7 @@ const setupUserConfigFromEnv = () => {
 }
 
 const startServers = async () => {
+  console.log(`🚀 Starting FastAPI server on port ${fastapiPort}...`);
   const fastApiProcess = spawn(
     "python",
     ["server.py", "--port", fastapiPort.toString(), "--reload", isDev],
@@ -113,9 +114,14 @@ const startServers = async () => {
   );
 
   fastApiProcess.on("error", (err) => {
-    console.error("FastAPI process failed to start:", err);
+    console.error("❌ FastAPI process failed to start:", err);
   });
 
+  fastApiProcess.on("exit", (code, signal) => {
+    console.error(`💥 FastAPI process exited with code ${code}, signal ${signal}`);
+  });
+
+  console.log(`🔧 Starting MCP server on port ${appmcpPort}...`);
   const appmcpProcess = spawn(
     "python",
     [
@@ -131,10 +137,14 @@ const startServers = async () => {
   );
 
   appmcpProcess.on("error", (err) => {
-    console.error("App MCP process failed to start:", err);
+    console.error("❌ App MCP process failed to start:", err);
   });
 
+  appmcpProcess.on("exit", (code, signal) => {
+    console.error(`💥 MCP process exited with code ${code}, signal ${signal}`);
+  });
 
+  console.log(`⚛️  Starting Next.js server on port ${nextjsPort}...`);
   const nextjsProcess = spawn(
     "npm",
     ["run", isDev ? "dev" : "start", "--", "-p", nextjsPort.toString()],
@@ -146,9 +156,14 @@ const startServers = async () => {
   );
 
   nextjsProcess.on("error", (err) => {
-    console.error("Next.js process failed to start:", err);
+    console.error("❌ Next.js process failed to start:", err);
   });
 
+  nextjsProcess.on("exit", (code, signal) => {
+    console.error(`💥 Next.js process exited with code ${code}, signal ${signal}`);
+  });
+
+  console.log("🦙 Starting Ollama service...");
   const ollamaProcess = spawn(
     "ollama",
     ["serve"],
@@ -160,39 +175,66 @@ const startServers = async () => {
   );
 
   ollamaProcess.on("error", err => {
-    console.error("Ollama process failed to start:", err);
+    console.error("❌ Ollama process failed to start:", err);
+  });
+
+  ollamaProcess.on("exit", (code, signal) => {
+    console.error(`💥 Ollama process exited with code ${code}, signal ${signal}`);
   });
 
 
 
-  // Keep the Node process alive until both servers exit
-  const exitCode = await Promise.race([
+  // Periodic heartbeat to confirm all processes are running
+  const heartbeatInterval = setInterval(() => {
+    const processes = [
+      { name: "FastAPI", process: fastApiProcess },
+      { name: "Next.js", process: nextjsProcess },
+      { name: "Ollama", process: ollamaProcess },
+      { name: "MCP", process: appmcpProcess }
+    ];
+    
+    const runningProcesses = processes.filter(p => !p.process.killed && p.process.exitCode === null);
+    console.log(`💓 Heartbeat: ${runningProcesses.length}/${processes.length} processes running (${runningProcesses.map(p => p.name).join(', ')})`);
+    
+    if (runningProcesses.length === 0) {
+      console.error("❌ All processes have stopped!");
+      clearInterval(heartbeatInterval);
+    }
+  }, 30000); // Log every 30 seconds
 
+  console.log("✅ All services started successfully. Monitoring processes...");
+
+  // Keep the Node process alive until any server exits
+  const exitCode = await Promise.race([
     new Promise(resolve => fastApiProcess.on("exit", resolve)),
     new Promise(resolve => nextjsProcess.on("exit", resolve)),
     new Promise(resolve => ollamaProcess.on("exit", resolve)),
+    new Promise(resolve => appmcpProcess.on("exit", resolve)),
   ]);
 
-  console.log(`One of the processes exited. Exit code: ${exitCode}`);
+  clearInterval(heartbeatInterval);
+  console.log(`💥 One of the processes exited. Exit code: ${exitCode}`);
+  console.log("🛑 Shutting down all services...");
   process.exit(exitCode);
 };
 
 // Start nginx service
 const startNginx = () => {
+  console.log('🌐 Starting Nginx reverse proxy...');
   const nginxProcess = spawn('service', ['nginx', 'start'], {
     stdio: 'inherit',
     env: process.env,
   });
 
   nginxProcess.on('error', err => {
-    console.error('Nginx process failed to start:', err);
+    console.error('❌ Nginx process failed to start:', err);
   });
 
   nginxProcess.on('exit', (code) => {
     if (code === 0) {
-      console.log('Nginx started successfully');
+      console.log('✅ Nginx started successfully');
     } else {
-      console.error(`Nginx failed to start with exit code: ${code}`);
+      console.error(`❌ Nginx failed to start with exit code: ${code}`);
     }
   });
 };
@@ -201,10 +243,14 @@ if (isDev) {
   setupNodeModules();
 }
 
+console.log('🎯 Presenton application starting...');
+console.log(`📍 Environment: ${isDev ? 'Development' : 'Production'}`);
+console.log(`📂 App data directory: ${process.env.APP_DATA_DIRECTORY}`);
+
 if (canChangeKeys) {
+  console.log('⚙️  Setting up user configuration...');
   setupUserConfigFromEnv();
 }
 
 startServers();
-
 startNginx();
