@@ -47,8 +47,7 @@ RUN npm install
 # RUN npm ci --omit=dev && npm cache clean --force
 
 # Install chrome for puppeteer
-# RUN npx puppeteer browsers install chrome@136.0.7103.92 --install-deps
-RUN npx puppeteer browsers install chrome--install-deps
+RUN npx puppeteer browsers install chrome --install-deps
 
 # Copy Next.js app
 COPY servers/nextjs/ /app/servers/nextjs/
