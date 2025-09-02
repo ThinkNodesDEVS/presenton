@@ -102,54 +102,22 @@ const setupUserConfigFromEnv = () => {
 }
 
 const startServers = async () => {
-  console.log(`🚀 Starting FastAPI server on port ${fastapiPort}...`);
-  console.log(`📁 FastAPI working directory: ${fastapiDir}`);
-  console.log(`🐍 Python command: python server.py --port ${fastapiPort} --reload ${isDev}`);
   
   const fastApiProcess = spawn(
     "python",
     ["server.py", "--port", fastapiPort.toString(), "--reload", isDev],
     {
       cwd: fastapiDir,
-      stdio: ["pipe", "pipe", "pipe"], // Capture stdout/stderr separately
+      stdio: "inherit",
       env: process.env,
     },
   );
 
-  // Capture and log FastAPI stdout
-  fastApiProcess.stdout.on('data', (data) => {
-    console.log(`[FastAPI STDOUT] ${data.toString().trim()}`);
-  });
-
-  // Capture and log FastAPI stderr - THIS IS KEY!
-  fastApiProcess.stderr.on('data', (data) => {
-    console.error(`[FastAPI STDERR] ${data.toString().trim()}`);
-  });
 
   fastApiProcess.on("error", (err) => {
-    console.error("❌ FastAPI process failed to start:", err);
+    console.error("FastAPI process failed to start:", err);
   });
 
-  fastApiProcess.on("exit", (code, signal) => {
-    console.error(`💥 FastAPI process exited with code ${code}, signal ${signal}`);
-  });
-
-  // Add startup health check
-  setTimeout(async () => {
-    try {
-      console.log("🔍 Checking if FastAPI server is responding...");
-      const response = await fetch(`http://localhost:${fastapiPort}/health`);
-      if (response.ok) {
-        console.log("✅ FastAPI server health check passed");
-      } else {
-        console.error(`❌ FastAPI health check failed with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("❌ FastAPI health check failed:", error.message);
-    }
-  }, 5000); // Check after 5 seconds
-
-  console.log(`🔧 Starting MCP server on port ${appmcpPort}...`);
   const appmcpProcess = spawn(
     "python",
     [
@@ -168,9 +136,6 @@ const startServers = async () => {
     console.error("❌ App MCP process failed to start:", err);
   });
 
-  appmcpProcess.on("exit", (code, signal) => {
-    console.error(`💥 MCP process exited with code ${code}, signal ${signal}`);
-  });
 
   console.log(`⚛️  Starting Next.js server on port ${nextjsPort}...`);
   const nextjsProcess = spawn(
@@ -212,25 +177,6 @@ const startServers = async () => {
 
 
 
-  // Periodic heartbeat to confirm all processes are running
-  const heartbeatInterval = setInterval(() => {
-    const processes = [
-      { name: "FastAPI", process: fastApiProcess },
-      { name: "Next.js", process: nextjsProcess },
-      { name: "Ollama", process: ollamaProcess },
-      { name: "MCP", process: appmcpProcess }
-    ];
-    
-    const runningProcesses = processes.filter(p => !p.process.killed && p.process.exitCode === null);
-    console.log(`💓 Heartbeat: ${runningProcesses.length}/${processes.length} processes running (${runningProcesses.map(p => p.name).join(', ')})`);
-    
-    if (runningProcesses.length === 0) {
-      console.error("❌ All processes have stopped!");
-      clearInterval(heartbeatInterval);
-    }
-  }, 30000); // Log every 30 seconds
-
-  console.log("✅ All services started successfully. Monitoring processes...");
 
   // Keep the Node process alive until any server exits
   const exitCode = await Promise.race([
@@ -240,9 +186,7 @@ const startServers = async () => {
     new Promise(resolve => appmcpProcess.on("exit", resolve)),
   ]);
 
-  clearInterval(heartbeatInterval);
   console.log(`💥 One of the processes exited. Exit code: ${exitCode}`);
-  console.log("🛑 Shutting down all services...");
   process.exit(exitCode);
 };
 
@@ -271,7 +215,7 @@ if (isDev) {
   setupNodeModules();
 }
 
-console.log('🎯 Presenton application starting...');
+console.log('🎯 Decky application starting...');
 console.log(`📍 Environment: ${isDev ? 'Development' : 'Production'}`);
 console.log(`📂 App data directory: ${process.env.APP_DATA_DIRECTORY}`);
 
@@ -282,26 +226,3 @@ if (canChangeKeys) {
 
 startServers();
 startNginx();
-
-// Add periodic memory check
-setInterval(() => {
-  const memUsage = process.memoryUsage();
-  console.log(`💾 Memory: ${Math.round(memUsage.rss / 1024 / 1024)}MB RSS, ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB Heap`);
-}, 30000);
-
-// Add this after the health check setTimeout
-setTimeout(async () => {
-  console.log("🔍 Checking port bindings...");
-  
-  // Check if ports are actually open
-  exec('netstat -tulnp | grep ":8000\\|:3000"', (error, stdout, stderr) => {
-    if (stdout) {
-      console.log("📡 Open ports:", stdout);
-    } else {
-      console.error("❌ No servers listening on ports 3000/8000");
-      if (stderr) {
-        console.error("📡 Port check stderr:", stderr);
-      }
-    }
-  });
-}, 10000); // Check after 10 seconds
