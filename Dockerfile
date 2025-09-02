@@ -6,14 +6,18 @@ RUN apt-get update && apt-get install -y \
     curl \
     libreoffice \
     fontconfig \
-    imagemagick
+    imagemagick \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
 
 
 # Install Node.js 20 using NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 
 # Create a working directory
@@ -31,13 +35,15 @@ RUN curl -fsSL https://ollama.com/install.sh | sh
 # Install dependencies for FastAPI
 RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
     pathvalidate pdfplumber chromadb sqlmodel \
-    anthropic google-genai openai fastmcp "python-jose[cryptography]"
-RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
+    anthropic google-genai openai fastmcp "python-jose[cryptography]" && \
+    pip cache purge
+RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu && \
+    pip cache purge
 
 # Install dependencies for Next.js
 WORKDIR /app/servers/nextjs
 COPY servers/nextjs/package.json servers/nextjs/package-lock.json ./
-RUN npm install
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Install chrome for puppeteer
 RUN npx puppeteer browsers install chrome@136.0.7103.92 --install-deps
@@ -62,6 +68,11 @@ COPY start.js LICENSE NOTICE ./
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Final cleanup to reduce image size
+RUN rm -rf /tmp/* && \
+    rm -rf /var/tmp/* && \
+    rm -rf ~/.cache/*
 
 # Expose the ports
 EXPOSE 80
