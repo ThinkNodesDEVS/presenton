@@ -64,7 +64,7 @@ COPY start.js LICENSE NOTICE ./
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose the ports
-EXPOSE 80 8000 3000
+EXPOSE 80
 
 # Start the servers
 CMD ["node", "/app/start.js"]
