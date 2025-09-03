@@ -4,6 +4,9 @@ FROM python:3.11-slim-bookworm
 RUN apt-get update && apt-get install -y \
     nginx \
     curl \
+    wget \
+    ca-certificates \
+    gnupg \
     libreoffice \
     fontconfig \
     imagemagick \
