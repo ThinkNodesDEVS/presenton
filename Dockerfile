@@ -87,7 +87,7 @@ RUN npm install -g puppeteer@latest && \
     npm cache clean --force
 
 # Copy built Next.js app
-COPY --from=frontend-builder /app/servers/nextjs/.next /app/servers/nextjs/.next
+COPY --from=frontend-builder /app/servers/nextjs/.next-build /app/servers/nextjs/.next-build
 COPY --from=frontend-builder /app/servers/nextjs/public /app/servers/nextjs/public
 COPY --from=frontend-builder /app/servers/nextjs/package.json /app/servers/nextjs/package.json
 

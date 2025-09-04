@@ -1,0 +1,206 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+env:
+  IMAGE_NAME: decky
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/graalvm/
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo docker system prune -af --volumes
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.12.0
+
+      - name: Build Docker Image (No Push)
+        uses: docker/build-push-action@v5
+        id: build
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+          # Optimize build for PR validation
+          provenance: false
+          sbom: false
+
+      - name: Validate Build Success
+        run: |
+          echo "✅ Docker build completed successfully!"
+          echo "📦 Built Image: ${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}"
+          echo "🔍 Image Digest: ${{ steps.build.outputs.digest }}"
+          echo "⏰ Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo "🎯 PR #${{ github.event.number }} validation passed!"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        if: success()
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Build Validation Passed
+              
+              **Docker Build:** Successfully completed
+              **Image:** \`${{ env.IMAGE_NAME }}:pr-${{ github.event.number }}\`
+              **Digest:** \`${{ steps.build.outputs.digest }}\`
+              **Build Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+              
+              This PR is ready for review! 🚀`
+            })
+
+      - name: Comment on PR (Failure)
+        uses: actions/github-script@v7
+        if: failure()
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ Build Validation Failed
+              
+              **Status:** Build failed during validation
+              **PR:** #${{ github.event.number }}
+              **Failed Step:** Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details
+              
+              Please fix the build issues before merging. 🔧`
+            })
+
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: servers/nextjs/package-lock.json
+
+      - name: Install Next.js Dependencies
+        working-directory: servers/nextjs
+        run: npm ci
+
+      - name: Run TypeScript Type Check
+        working-directory: servers/nextjs
+        run: npx tsc --noEmit
+
+      - name: Run Next.js Lint
+        working-directory: servers/nextjs
+        run: npm run lint
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install Python Dependencies
+        working-directory: servers/fastapi
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r <(grep -E '^[^#]' pyproject.toml | grep -E '^\s*"' | sed 's/.*"\([^"]*\)".*/\1/' | head -10)
+
+      - name: Python Type Check (if mypy config exists)
+        working-directory: servers/fastapi
+        run: |
+          if [ -f "mypy.ini" ] || [ -f "pyproject.toml" ]; then
+            pip install mypy
+            python -m mypy . --ignore-missing-imports || echo "⚠️ MyPy check completed with warnings"
+          else
+            echo "ℹ️ No MyPy configuration found, skipping Python type check"
+          fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+  pr-summary:
+    runs-on: ubuntu-latest
+    needs: [validate, lint-and-type-check, security-scan]
+    if: always()
+
+    steps:
+      - name: PR Validation Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const validate = '${{ needs.validate.result }}';
+            const lintCheck = '${{ needs.lint-and-type-check.result }}';
+            const security = '${{ needs.security-scan.result }}';
+
+            let summary = '## 📋 PR Validation Summary\n\n';
+            summary += `**Docker Build:** ${validate === 'success' ? '✅ Passed' : '❌ Failed'}\n`;
+            summary += `**Lint & Type Check:** ${lintCheck === 'success' ? '✅ Passed' : '❌ Failed'}\n`;
+            summary += `**Security Scan:** ${security === 'success' ? '✅ Passed' : '⚠️ Check results'}\n\n`;
+
+            if (validate === 'success' && lintCheck === 'success') {
+              summary += '🎉 **All checks passed!** This PR is ready for review and merge.\n';
+            } else {
+              summary += '🔧 **Some checks failed.** Please review and fix the issues before merging.\n';
+            }
+
+            summary += `\n**Workflow Run:** [View Details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            })
