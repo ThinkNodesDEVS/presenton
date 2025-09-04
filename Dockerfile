@@ -1,112 +1,70 @@
-# Multi-stage optimized Dockerfile for faster builds
-FROM node:20-slim AS frontend-builder
+FROM python:3.11-slim-bookworm
 
-# Install system dependencies for Next.js build
+# Install Node.js and npm
 RUN apt-get update && apt-get install -y \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+    nginx \
+    curl \
+    libreoffice \
+    fontconfig \
+    imagemagick
 
-# Build Next.js app
+RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
+
+
+# Install Node.js 20 using NodeSource repository
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+
+# Create a working directory
+WORKDIR /app  
+
+# Set environment variables
+ENV APP_DATA_DIRECTORY=/app_data
+ENV TEMP_DIRECTORY=/tmp/presenton
+# ENV PYTHONPATH="${PYTHONPATH}:/app/servers/fastapi"
+
+
+# Install ollama
+RUN curl -fsSL https://ollama.com/install.sh | sh
+
+# Install dependencies for FastAPI
+RUN pip install aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
+    pathvalidate pdfplumber chromadb sqlmodel \
+    anthropic google-genai openai fastmcp "python-jose[cryptography]"
+RUN pip install docling --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install dependencies for Next.js
 WORKDIR /app/servers/nextjs
 COPY servers/nextjs/package.json servers/nextjs/package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm install
 
-# Copy source and build
-COPY servers/nextjs/ ./
+# Install chrome for puppeteer
+RUN npx puppeteer browsers install chrome@136.0.7103.92 --install-deps
+
+# Copy Next.js app
+COPY servers/nextjs/ /app/servers/nextjs/
+
+# Build the Next.js app
+WORKDIR /app/servers/nextjs
+# Add build args for Clerk (these will be passed from GitHub Actions)
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG CLERK_SECRET_KEY
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
 RUN npm run build
 
-# Python dependencies stage
-FROM python:3.11-slim-bookworm AS python-deps
-
-# Install system dependencies in one layer
-RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    ca-certificates \
-    gnupg \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    aiohttp aiomysql aiosqlite asyncpg fastapi[standard] \
-    pathvalidate pdfplumber chromadb sqlmodel \
-    anthropic google-genai openai fastmcp "python-jose[cryptography]"
-
-# Install docling separately (heavy dependency)
-RUN pip install --no-cache-dir docling --extra-index-url https://download.pytorch.org/whl/cpu
-
-# Final production stage
-FROM python:3.11-slim-bookworm
-
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
-    nginx \
-    curl \
-    wget \
-    ca-certificates \
-    gnupg \
-    libreoffice \
-    fontconfig \
-    imagemagick \
-    && rm -rf /var/lib/apt/lists/*
-
-# Fix ImageMagick policy
-RUN sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml
-
-# Install Node.js 20
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Ollama (only if needed - consider making this optional)
-RUN curl -fsSL https://ollama.com/install.sh | sh
-
-# Create working directory
 WORKDIR /app
 
-# Set environment variables
-ENV APP_DATA_DIRECTORY=/app_data
-ENV TEMP_DIRECTORY=/tmp/presenton
-
-# Copy Python dependencies from previous stage
-COPY --from=python-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=python-deps /usr/local/bin /usr/local/bin
-
-# Install Puppeteer Chrome (lighter approach)
-RUN npm install -g puppeteer@latest && \
-    npx puppeteer browsers install chrome --install-deps && \
-    npm cache clean --force
-
-# Copy built Next.js app
-COPY --from=frontend-builder /app/servers/nextjs/.next /app/servers/nextjs/.next
-COPY --from=frontend-builder /app/servers/nextjs/public /app/servers/nextjs/public
-COPY --from=frontend-builder /app/servers/nextjs/package.json /app/servers/nextjs/package.json
-
-# Install only production dependencies for runtime
-WORKDIR /app/servers/nextjs
-RUN npm ci --only=production --no-audit --no-fund && npm cache clean --force
-
-# Copy FastAPI application
+# Copy FastAPI
 COPY servers/fastapi/ ./servers/fastapi/
 COPY start.js LICENSE NOTICE ./
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Final cleanup
-RUN rm -rf /tmp/* /var/tmp/* ~/.cache/*
+# Expose the ports
+EXPOSE 80 8000 3000
 
-# Expose port
-EXPOSE 80
-
-# Start the application
+# Start the servers
 CMD ["node", "/app/start.js"]
