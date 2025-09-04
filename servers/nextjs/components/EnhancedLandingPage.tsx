@@ -25,6 +25,7 @@ import DeckyBento from "./DeckyBento";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import logo from "@/public/logo.png";
 
 const rotatingPhrases = [
   "Close deals",
@@ -152,7 +153,7 @@ export default function EnhancedLandingPage() {
           <div className="flex items-center justify-between">
             {/* Enhanced Logo */}
             <div className="flex items-center space-x-2">
-              <Image src="/logo.png" alt="Decky Logo" width={55} height={55} />
+              <Image src={logo} alt="Decky Logo" width={55} height={55} />
             </div>
 
             {/* Enhanced Desktop Navigation */}
@@ -931,12 +932,7 @@ export default function EnhancedLandingPage() {
             {/* Logo & Description */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <Image
-                  src="/logo.png"
-                  alt="Decky Logo"
-                  width={60}
-                  height={60}
-                />
+                <Image src={logo} alt="Decky Logo" width={60} height={60} />
               </div>
               <p className="text-gray-400 max-w-md mb-6">
                 The AI-powered presentation tool that transforms your ideas into
