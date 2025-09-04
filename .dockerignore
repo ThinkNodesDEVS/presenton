@@ -20,7 +20,6 @@ TYPOGRAPHY_GUIDE.md
 # Node.js
 servers/nextjs/node_modules
 servers/nextjs/.next
-servers/nextjs/.next-build
 servers/nextjs/cypress
 servers/nextjs/cypress.config.ts
 servers/nextjs/tsconfig.tsbuildinfo
