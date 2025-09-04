@@ -43,6 +43,7 @@ from utils.llm_calls.generate_slide_content import (
 )
 from utils.process_slides import process_slide_and_fetch_assets
 from utils.randomizers import get_random_uuid
+from utils.auth_utils import validate_presentation_ownership, get_user_id_from_request
 
 
 PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
@@ -52,9 +53,9 @@ PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
 async def get_presentation(
     id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(404, "Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(id, user_id, sql_session)
+    
     slides = await sql_session.scalars(
         select(SlideModel)
         .where(SlideModel.presentation == id)
@@ -70,9 +71,8 @@ async def get_presentation(
 async def delete_presentation(
     id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
-    presentation = await sql_session.get(PresentationModel, id)
-    if not presentation:
-        raise HTTPException(404, "Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(id, user_id, sql_session)
 
     await sql_session.execute(delete(SlideModel).where(SlideModel.presentation == id))
     await sql_session.delete(presentation)
@@ -81,8 +81,11 @@ async def delete_presentation(
 
 @PRESENTATION_ROUTER.get("/all", response_model=List[PresentationWithSlides])
 async def get_all_presentations(request: Request, sql_session: AsyncSession = Depends(get_async_session)):
+    user_id = get_user_id_from_request(request)
     presentations_with_slides = []
-    presentations = await sql_session.scalars(select(PresentationModel))
+    presentations = await sql_session.scalars(
+        select(PresentationModel).where(PresentationModel.user_id == user_id)
+    )
 
     async def inner(presentation: PresentationModel, sql_session: AsyncSession):
         first_slide = await sql_session.scalar(
@@ -140,9 +143,8 @@ async def prepare_presentation(
     if not outlines:
         raise HTTPException(status_code=400, detail="Outlines are required")
 
-    presentation = await sql_session.get(PresentationModel, presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(presentation_id, user_id, sql_session)
 
     presentation_outline_model = PresentationOutlineModel(slides=outlines)
 
@@ -182,9 +184,8 @@ async def prepare_presentation(
 async def stream_presentation(
     presentation_id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
-    presentation = await sql_session.get(PresentationModel, presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(presentation_id, user_id, sql_session)
     if not presentation.structure:
         raise HTTPException(
             status_code=400,
@@ -279,9 +280,8 @@ async def update_presentation(
 ):
     updated_presentation = presentation_with_slides.to_presentation_model()
     updated_slides = presentation_with_slides.slides
-    presentation = await sql_session.get(PresentationModel, updated_presentation.id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(updated_presentation.id, user_id, sql_session)
     presentation.sqlmodel_update(updated_presentation)
 
     await sql_session.execute(
@@ -376,8 +376,11 @@ async def generate_presentation_api(
             presentation_structure.slides[index] = random_slide_index
 
     # 6. Create PresentationModel
+    user_id = get_user_id_from_request(req)
+    
     presentation = PresentationModel(
         id=presentation_id,
+        user_id=user_id,
         prompt=request.prompt,
         n_slides=request.n_slides,
         language=request.language,
@@ -385,9 +388,6 @@ async def generate_presentation_api(
         layout=layout_model.model_dump(),
         structure=presentation_structure.model_dump(),
     )
-
-    user = getattr(req.state, "user", None) or {}
-    user_id = user.get("user_id") if isinstance(user, dict) else None
     image_generation_service = ImageGenerationService(get_images_directory(), user_id=user_id or "public")
     icon_finder_service = IconFinderService()
     async_asset_generation_tasks = []
@@ -446,10 +446,10 @@ async def generate_presentation_api(
 async def from_template(
     data: Annotated[GetPresentationUsingTemplateRequest, Body()],
     sql_session: AsyncSession = Depends(get_async_session),
+    request: Request = None,
 ):
-    presentation = await sql_session.get(PresentationModel, data.presentation_id)
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(data.presentation_id, user_id, sql_session)
     slides = await sql_session.scalars(
         select(SlideModel).where(SlideModel.presentation == data.presentation_id)
     )
