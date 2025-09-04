@@ -23,6 +23,9 @@ servers/nextjs/.next
 servers/nextjs/cypress
 servers/nextjs/cypress.config.ts
 servers/nextjs/tsconfig.tsbuildinfo
+**/*.cy.ts
+**/*.cy.tsx
+**/cypress/**
 
 # Python
 servers/fastapi/__pycache__/
