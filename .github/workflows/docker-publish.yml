@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 env:
   IMAGE_NAME: decky
@@ -20,11 +20,20 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/graalvm/
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo docker system prune -af --volumes
           df -h
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.12.0
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -34,14 +43,27 @@ jobs:
 
       - name: Build and Push to Docker Hub
         uses: docker/build-push-action@v5
+        id: build
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64 # Removed ARM64 to cut build time in half
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
+
+      - name: Verify Built Image
+        run: |
+          echo "🚀 Build completed successfully!"
+          echo "📦 Built Image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          echo "🔍 Image Digest: ${{ steps.build.outputs.digest }}"
+          echo "📋 Image Metadata: ${{ steps.build.outputs.metadata }}"
+          echo "⏰ Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo "🔗 Docker Hub URL: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}/tags"
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
