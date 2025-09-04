@@ -25,7 +25,7 @@ import DeckyBento from "./DeckyBento";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import logo from "@/public/logo.png";
+import logo from "@/images/logo.png";
 
 const rotatingPhrases = [
   "Close deals",
