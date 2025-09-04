@@ -157,14 +157,6 @@ export default function EnhancedLandingPage() {
 
             {/* Enhanced Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
-              {/* <nav className="flex items-center space-x-8">
-                <a
-                  href="#features"
-                  className="text-gray-600 hover:text-gray-900 transition-colors font-medium"
-                >
-                  Features
-                </a>
-              </nav> */}
               <Button
                 onClick={() => setIsSignUpOpen(true)}
                 className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
