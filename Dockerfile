@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 # Build Next.js app
 WORKDIR /app/servers/nextjs
 COPY servers/nextjs/package.json servers/nextjs/package-lock.json ./
-RUN npm ci --only=production --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 # Copy source and build
 COPY servers/nextjs/ ./
@@ -90,7 +90,10 @@ RUN npm install -g puppeteer@latest && \
 COPY --from=frontend-builder /app/servers/nextjs/.next /app/servers/nextjs/.next
 COPY --from=frontend-builder /app/servers/nextjs/public /app/servers/nextjs/public
 COPY --from=frontend-builder /app/servers/nextjs/package.json /app/servers/nextjs/package.json
-COPY --from=frontend-builder /app/servers/nextjs/node_modules /app/servers/nextjs/node_modules
+
+# Install only production dependencies for runtime
+WORKDIR /app/servers/nextjs
+RUN npm ci --only=production --no-audit --no-fund && npm cache clean --force
 
 # Copy FastAPI application
 COPY servers/fastapi/ ./servers/fastapi/
