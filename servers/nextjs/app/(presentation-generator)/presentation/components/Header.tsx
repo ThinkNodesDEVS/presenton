@@ -1,10 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import {
-  SquareArrowOutUpRight,
-  Play,
-  Loader2,
-} from "lucide-react";
+import { SquareArrowOutUpRight, Play, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import Wrapper from "@/components/Wrapper";
 import { useRouter, usePathname } from "next/navigation";
@@ -21,7 +17,6 @@ import Link from "next/link";
 
 import { RootState } from "@/store/store";
 import { toast } from "sonner";
-
 
 import Announcement from "@/components/Announcement";
 import { PptxPresentationModel } from "@/types/pptx_models";
@@ -43,12 +38,13 @@ const Header = ({
   const router = useRouter();
   const pathname = usePathname();
 
-
   const { presentationData, isStreaming } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
 
-  const get_presentation_pptx_model = async (id: string): Promise<PptxPresentationModel> => {
+  const get_presentation_pptx_model = async (
+    id: string
+  ): Promise<PptxPresentationModel> => {
     const response = await fetch(`/api/presentation_to_pptx_model?id=${id}`);
     const pptx_model = await response.json();
     return pptx_model;
@@ -62,8 +58,9 @@ const Header = ({
       setShowLoader(true);
       // Save the presentation data before exporting
       trackEvent(MixpanelEvent.Header_UpdatePresentationContent_API_Call);
-      await PresentationGenerationApi.updatePresentationContent(presentationData);
-
+      await PresentationGenerationApi.updatePresentationContent(
+        presentationData
+      );
 
       trackEvent(MixpanelEvent.Header_GetPptxModel_API_Call);
       const pptx_model = await get_presentation_pptx_model(presentation_id);
@@ -71,7 +68,9 @@ const Header = ({
         throw new Error("Failed to get presentation PPTX model");
       }
       trackEvent(MixpanelEvent.Header_ExportAsPPTX_API_Call);
-      const pptx_path = await PresentationGenerationApi.exportAsPPTX(pptx_model);
+      const pptx_path = await PresentationGenerationApi.exportAsPPTX(
+        pptx_model
+      );
       if (pptx_path) {
         // window.open(pptx_path, '_self');
         downloadLink(pptx_path);
@@ -98,15 +97,17 @@ const Header = ({
       setShowLoader(true);
       // Save the presentation data before exporting
       trackEvent(MixpanelEvent.Header_UpdatePresentationContent_API_Call);
-      await PresentationGenerationApi.updatePresentationContent(presentationData);
+      await PresentationGenerationApi.updatePresentationContent(
+        presentationData
+      );
 
       trackEvent(MixpanelEvent.Header_ExportAsPDF_API_Call);
-      const response = await fetch('/api/export-as-pdf', {
-        method: 'POST',
+      const response = await fetch("/api/export-as-pdf", {
+        method: "POST",
         body: JSON.stringify({
           id: presentation_id,
           title: presentationData?.title,
-        })
+        }),
       });
 
       if (response.ok) {
@@ -116,7 +117,6 @@ const Header = ({
       } else {
         throw new Error("Failed to export PDF");
       }
-
     } catch (err) {
       console.error(err);
       toast.error("Having trouble exporting!", {
@@ -130,41 +130,50 @@ const Header = ({
   const downloadLink = (path: string) => {
     // if we have popup access give direct download if not redirect to the path
     if (window.opener) {
-      window.open(path, '_blank');
+      window.open(path, "_blank");
     } else {
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = path;
-      link.download = path.split('/').pop() || 'download';
+      link.download = path.split("/").pop() || "download";
       document.body.appendChild(link);
       link.click();
     }
   };
 
   const ExportOptions = ({ mobile }: { mobile: boolean }) => (
-    <div className={`space-y-2 max-md:mt-4 ${mobile ? "" : "bg-white"} rounded-lg`}>
+    <div
+      className={`space-y-2 max-md:mt-4 ${mobile ? "" : "bg-white"} rounded-lg`}
+    >
       <Button
         onClick={() => {
-          trackEvent(MixpanelEvent.Header_Export_PDF_Button_Clicked, { pathname });
+          trackEvent(MixpanelEvent.Header_Export_PDF_Button_Clicked, {
+            pathname,
+          });
           handleExportPdf();
         }}
         variant="ghost"
-        className={`pb-4 border-b rounded-none border-gray-300 w-full flex justify-start text-[#5146E5] ${mobile ? "bg-white py-6 border-none rounded-lg" : ""}`} >
+        className={`pb-4 border-b rounded-none border-gray-300 w-full flex justify-start text-deep-navy ${
+          mobile ? "bg-white py-6 border-none rounded-lg" : ""
+        }`}
+      >
         <Image src={PDFIMAGE} alt="pdf export" width={30} height={30} />
         Export as PDF
       </Button>
       <Button
         onClick={() => {
-          trackEvent(MixpanelEvent.Header_Export_PPTX_Button_Clicked, { pathname });
+          trackEvent(MixpanelEvent.Header_Export_PPTX_Button_Clicked, {
+            pathname,
+          });
           handleExportPptx();
         }}
         variant="ghost"
-        className={`w-full flex justify-start text-[#5146E5] ${mobile ? "bg-white py-6" : ""}`}
+        className={`w-full flex justify-start text-deep-navy ${
+          mobile ? "bg-white py-6" : ""
+        }`}
       >
         <Image src={PPTXIMAGE} alt="pptx export" width={30} height={30} />
         Export as PPTX
       </Button>
-
-
     </div>
   );
 
@@ -173,7 +182,9 @@ const Header = ({
       {/* Present Button */}
       <Button
         onClick={() => {
-          const to = `?id=${presentation_id}&mode=present&slide=${currentSlide || 0}`;
+          const to = `?id=${presentation_id}&mode=present&slide=${
+            currentSlide || 0
+          }`;
           trackEvent(MixpanelEvent.Navigation, { from: pathname, to });
           router.push(to);
         }}
@@ -186,17 +197,27 @@ const Header = ({
 
       {/* Desktop Export Button with Popover */}
 
-      <div style={{
-        zIndex: 100
-      }} className="hidden lg:block relative ">
-        <Popover open={open} onOpenChange={setOpen} >
+      <div
+        style={{
+          zIndex: 100,
+        }}
+        className="hidden lg:block relative "
+      >
+        <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button className={`border py-5 text-[#5146E5] font-bold rounded-[32px] transition-all duration-500 hover:border hover:bg-[#5146E5] hover:text-white w-full ${mobile ? "" : "bg-white"}`}>
+            <Button
+              className={`border py-5 text-deep-navy font-bold rounded-[32px] transition-all duration-500 hover:border hover:bg-deep-navy hover:text-white w-full ${
+                mobile ? "" : "bg-white"
+              }`}
+            >
               <SquareArrowOutUpRight className="w-4 h-4 mr-1" />
               Export
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[250px] space-y-2 py-3 px-2 ">
+          <PopoverContent
+            align="end"
+            className="w-[250px] space-y-2 py-3 px-2 "
+          >
             <ExportOptions mobile={false} />
           </PopoverContent>
         </Popover>
@@ -217,10 +238,7 @@ const Header = ({
         showProgress={true}
         duration={40}
       />
-      <div
-
-        className="bg-[#5146E5] w-full shadow-lg sticky top-0 ">
-
+      <div className="bg-deep-navy w-full shadow-lg sticky top-0 ">
         <Announcement />
         <Wrapper className="flex items-center justify-between py-1">
           <Link href="/dashboard" className="min-w-[162px]">
@@ -237,7 +255,6 @@ const Header = ({
               <Loader2 className="animate-spin text-white font-bold w-6 h-6" />
             )}
 
-
             <MenuItems mobile={false} />
             <HeaderNav />
           </div>
@@ -245,10 +262,8 @@ const Header = ({
           {/* Mobile Menu */}
           <div className="lg:hidden flex items-center gap-4">
             <HeaderNav />
-
           </div>
         </Wrapper>
-
       </div>
     </>
   );
