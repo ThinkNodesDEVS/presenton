@@ -9,6 +9,7 @@ import HeaderNav from "@/app/(presentation-generator)/components/HeaderNab";
 import { Layout, FilePlus2 } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import logo from "@/images/logo.png";
+import Image from "next/image";
 
 const Header = () => {
   const pathname = usePathname();
@@ -27,11 +28,7 @@ const Header = () => {
                 })
               }
             >
-              <img
-                src="/logo-white.png"
-                alt="Presentation logo"
-                className="h-16"
-              />
+              <Image src={logo} alt="Decky Logo" width={55} height={55} />
             </Link>
           </div>
           <div className="flex items-center gap-3">
