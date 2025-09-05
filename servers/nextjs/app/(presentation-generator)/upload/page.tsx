@@ -5,39 +5,32 @@ import Header from "@/app/(presentation-generator)/dashboard/components/Header";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Presenton | Open Source AI presentation generator",
+  title: "Decky | AI Presentation Generator",
   description:
-    "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
+    "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
   alternates: {
-    canonical: "https://presenton.ai/create",
+    canonical: "https://decky.saleparrot.com",
   },
   keywords: [
+    "AI presentation generator",
+    "Decky",
+    "presentation AI agent",
+    "data storytelling",
+    "data visualization tool",
+    "AI data presentation",
     "presentation generator",
-    "AI presentations",
-    "data visualization",
-    "automatic presentation maker",
+    "data to presentation",
+    "interactive presentations",
     "professional slides",
-    "data-driven presentations",
-    "document to presentation",
-    "presentation automation",
-    "smart presentation tool",
-    "business presentations",
+    "from idea to impressive",
   ],
   openGraph: {
-    title: "Create Data Presentation | PresentOn",
+    title: "Create Data Presentation | Decky",
     description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
+      "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
     type: "website",
-    url: "https://presenton.ai/create",
-    siteName: "PresentOn",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Create Data Presentation | PresentOn",
-    description:
-      "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
-    site: "@presenton_ai",
-    creator: "@presenton_ai",
+    url: "https://decky.saleparrot.com",
+    siteName: "Decky",
   },
 };
 

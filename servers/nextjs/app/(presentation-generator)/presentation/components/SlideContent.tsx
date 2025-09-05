@@ -1,5 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Loader2, PlusIcon, Trash2, WandSparkles, StickyNote } from "lucide-react";
+import {
+  Loader2,
+  PlusIcon,
+  Trash2,
+  WandSparkles,
+  StickyNote,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -113,7 +119,6 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
       return;
     }
     if (slide.layout.includes("custom")) {
-
       const existingScript = document.querySelector(
         'script[src*="tailwindcss.com"]'
       );
@@ -155,7 +160,10 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
                 {!isStreaming && !loading && (
                   <div
                     onClick={() => {
-                      trackEvent(MixpanelEvent.Slide_Add_New_Slide_Button_Clicked, { pathname });
+                      trackEvent(
+                        MixpanelEvent.Slide_Add_New_Slide_Button_Clicked,
+                        { pathname }
+                      );
                       setShowNewSlideSelection(true);
                     }}
                     className="  bg-white shadow-md w-[80px] py-2 border hover:border-[#5141e5] duration-300  flex items-center justify-center rounded-lg cursor-pointer mx-auto"
@@ -174,12 +182,14 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
               presentationId={presentationId}
             />
           )}
-         
+
           {!isStreaming && !loading && (
             <ToolTip content="Delete slide">
               <div
                 onClick={() => {
-                  trackEvent(MixpanelEvent.Slide_Delete_Slide_Button_Clicked, { pathname });
+                  trackEvent(MixpanelEvent.Slide_Delete_Slide_Button_Clicked, {
+                    pathname,
+                  });
                   onDeleteSlide();
                 }}
                 className="absolute top-2 z-20 sm:top-4 right-2 sm:right-4 hidden md:block  transition-transform"
@@ -231,10 +241,14 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
                       <button
                         disabled={isUpdating}
                         type="submit"
-                        className={`bg-gradient-to-r from-[#9034EA] to-[#5146E5] rounded-[32px] px-4 py-2 text-white flex items-center justify-end gap-2 ml-auto ${isUpdating ? "opacity-70 cursor-not-allowed" : ""
-                          }`}
+                        className={`bg-gradient-to-r from-electric-orange to-deep-navy rounded-[32px] px-4 py-2 text-white flex items-center justify-end gap-2 ml-auto ${
+                          isUpdating ? "opacity-70 cursor-not-allowed" : ""
+                        }`}
                         onClick={() => {
-                          trackEvent(MixpanelEvent.Slide_Update_From_Prompt_Button_Clicked, { pathname });
+                          trackEvent(
+                            MixpanelEvent.Slide_Update_From_Prompt_Button_Clicked,
+                            { pathname }
+                          );
                         }}
                       >
                         {isUpdating ? "Updating..." : "Update"}
@@ -257,9 +271,16 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
                     </ToolTip>
                   </div>
                 </PopoverTrigger>
-                <PopoverContent side="left" align="start" sideOffset={10} className="w-[320px] z-30">
+                <PopoverContent
+                  side="left"
+                  align="start"
+                  sideOffset={10}
+                  className="w-[320px] z-30"
+                >
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-gray-600">Speaker notes</p>
+                    <p className="text-xs font-semibold text-gray-600">
+                      Speaker notes
+                    </p>
                     <div className="text-sm text-gray-800 whitespace-pre-wrap max-h-64 overflow-auto">
                       {slide.speaker_note}
                     </div>
