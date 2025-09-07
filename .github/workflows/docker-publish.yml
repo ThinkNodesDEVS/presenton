@@ -55,6 +55,21 @@ jobs:
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
 
+      - name: Verify Built Image
+        run: |
+          echo "🚀 Build completed successfully!"
+          echo "📦 Built Image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest"
+          echo "🔍 Image Digest: ${{ steps.build.outputs.digest }}"
+          echo "📋 Image Metadata: ${{ steps.build.outputs.metadata }}"
+          echo "⏰ Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo "🔗 Docker Hub URL: https://hub.docker.com/r/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}/tags"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
