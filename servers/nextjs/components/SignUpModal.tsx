@@ -44,13 +44,18 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         if (result?.status === "complete" && setActiveSignIn) {
           await setActiveSignIn({ session: result.createdSessionId });
           onClose();
-          router.push("/upload");
+          router.push("/dashboard");
         }
       } else {
         // Handle Sign Up
+        const nameParts = (formData.name || "").trim().split(/\s+/);
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
         const result = await signUp?.create({
           emailAddress: formData.email,
           password: formData.password,
+          firstName,
+          lastName,
         });
 
         // Handle email verification if required
@@ -64,7 +69,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         if (result?.status === "complete" && setActive) {
           await setActive({ session: result.createdSessionId });
           onClose();
-          router.push("/upload");
+          router.push("/dashboard");
         } else if (result?.status === "missing_requirements") {
           // Check if email verification is required
             if (result?.unverifiedFields?.includes("email_address")) {
