@@ -10,7 +10,8 @@ const isProtected = createRouteMatcher([
   '/documents-preview(.*)',
   '/pdf-maker(.*)',
   '/settings(.*)',
-  '/setup(.*)'
+  '/setup(.*)',
+  '/account(.*)'
 ])
 
 export default clerkMiddleware(

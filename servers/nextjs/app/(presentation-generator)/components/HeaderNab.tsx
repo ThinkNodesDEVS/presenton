@@ -1,16 +1,18 @@
 "use client";
-import { LayoutDashboard, Settings, Upload } from "lucide-react";
+import { LayoutDashboard, Settings, User } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
+import { useUser } from "@clerk/nextjs";
 
 const HeaderNav = () => {
 
   const canChangeKeys = useSelector((state: RootState) => state.userConfig.can_change_keys);
   const pathname = usePathname();
+  const { isSignedIn } = useUser();
 
   return (
     <div className="flex items-center gap-2">
@@ -27,19 +29,30 @@ const HeaderNav = () => {
           Dashboard
         </span>
       </Link>
-      {canChangeKeys && (
+      {isSignedIn ? (
         <Link
-          href="/settings"
+          href="/account"
           prefetch={false}
           className="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
           role="menuitem"
-          onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/settings" })}
+          onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/account" })}
         >
-          <Settings className="w-5 h-5" />
-          <span className="text-sm font-medium font-inter">
-            Settings
-          </span>
+          <User className="w-5 h-5" />
+          <span className="text-sm font-medium font-inter">Account</span>
         </Link>
+      ) : (
+        canChangeKeys && (
+          <Link
+            href="/settings"
+            prefetch={false}
+            className="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
+            role="menuitem"
+            onClick={() => trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/settings" })}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-sm font-medium font-inter">Settings</span>
+          </Link>
+        )
       )}
     </div>
   );
