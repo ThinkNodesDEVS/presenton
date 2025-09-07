@@ -89,7 +89,10 @@ export default function RootLayout({
         className={`${inter.variable} ${roboto.variable} ${instrument_sans.variable} antialiased`}
       >
 
-        <ClerkProvider>
+        <ClerkProvider
+          signInFallbackRedirectUrl="/dashboard"
+          signUpFallbackRedirectUrl="/dashboard"
+        >
           <Providers>
             <MixpanelInitializer>
               <LayoutProvider>

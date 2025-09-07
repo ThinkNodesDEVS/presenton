@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { X, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { useSignUp, useSignIn } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -11,26 +13,117 @@ interface SignUpModalProps {
 export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const [isLogin, setIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
 
+  const { signUp, setActive } = useSignUp();
+  const { signIn, setActive: setActiveSignIn } = useSignIn();
+  const router = useRouter();
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      if (isLogin) {
+        // Handle Sign In
+        const result = await signIn?.create({
+          identifier: formData.email,
+          password: formData.password,
+        });
 
-    // For now, just close the modal and potentially redirect to the app
-    setIsLoading(false);
-    onClose();
+        if (result?.status === "complete" && setActiveSignIn) {
+          await setActiveSignIn({ session: result.createdSessionId });
+          onClose();
+          router.push("/upload");
+        }
+      } else {
+        // Handle Sign Up
+        const result = await signUp?.create({
+          emailAddress: formData.email,
+          password: formData.password,
+        });
 
-    // Here you would typically handle the actual sign up/login logic
-    // and redirect to the main application
-    window.location.href = "/setup"; // Redirect to setup page
+        // Handle email verification if required
+        // Following: https://clerk.com/docs/custom-flows/email-password
+        if (result?.status === "missing_requirements" && result?.unverifiedFields?.includes("email_address")) {
+          // Prepare email verification with code (not magic link)
+          await signUp?.prepareEmailAddressVerification({ strategy: "email_code" });
+          setPendingVerification(true);
+        }
+
+        if (result?.status === "complete" && setActive) {
+          await setActive({ session: result.createdSessionId });
+          onClose();
+          router.push("/upload");
+        } else if (result?.status === "missing_requirements") {
+          // Check if email verification is required
+            if (result?.unverifiedFields?.includes("email_address")) {
+            setPendingVerification(true);
+              setError(""); // Clear error as we show the magic link UI instead
+          } else {
+            setError("Please check your email for verification instructions.");
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Authentication error:", err);
+      setError(err.errors?.[0]?.message || "An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Attempt email verification with the code
+      // Following: https://clerk.com/docs/custom-flows/email-password
+      const completeSignUp = await signUp?.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+
+      // Check the status to see if it is complete
+      // If complete, the user has been created -- set the session active
+      if (completeSignUp?.status === "complete" && setActive) {
+        await setActive({ 
+          session: completeSignUp.createdSessionId,
+          beforeEmit: () => {
+            onClose();
+            router.push("/dashboard");
+          }
+        });
+      } else {
+        setError("Verification failed. Please try again.");
+      }
+    } catch (err: any) {
+      console.error("Verification error:", err);
+      setError(err.errors?.[0]?.message || "Verification failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      await signUp?.prepareEmailAddressVerification({ strategy: "email_code" });
+      setError("Verification code sent! Please check your inbox.");
+    } catch (err: any) {
+      console.error("Resend error:", err);
+      setError("Failed to resend verification code. Please try again.");
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +131,8 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError("");
   };
 
   if (!isOpen) return null;
@@ -70,8 +165,80 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {pendingVerification ? (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                <div className="flex justify-center mb-3">
+                  <Mail className="h-12 w-12 text-blue-500" />
+                </div>
+                <h3 className="text-lg font-medium text-deep-navy mb-2">Check your email</h3>
+                <p className="text-medium-gray mb-2">
+                  We've sent a verification code to <strong>{formData.email}</strong>
+                </p>
+                <p className="text-medium-gray text-sm">
+                  Enter the 6-digit code below to verify your account
+                </p>
+              </div>
+
+              {/* Verification Code Form */}
+            <form onSubmit={handleVerification} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="verificationCode"
+                  className="block text-sm font-medium text-deep-navy mb-2"
+                >
+                  Verification Code
+                </label>
+                  <input
+                    type="text"
+                    id="verificationCode"
+                    name="verificationCode"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-center text-lg font-mono"
+                    placeholder="000000"
+                    maxLength={6}
+                    required
+                  />
+              </div>
+
+              <button
+                type="submit"
+                  disabled={isLoading || verificationCode.length !== 6}
+                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="animate-spin" size={18} />
+                    <span>Verifying...</span>
+                  </div>
+                ) : (
+                    "Verify Email"
+                )}
+              </button>
+              </form>
+
+              {/* Resend Code Button */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  className="text-teal-600 hover:text-teal-700 font-medium transition-colors text-sm"
+                >
+                  Didn't receive the code? Send again
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field (only for sign up) */}
             {!isLogin && (
               <div>
@@ -174,6 +341,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
               )}
             </button>
           </form>
+          )}
 
           {/* Toggle between Login/Signup */}
           <div className="mt-6 text-center">
@@ -183,6 +351,9 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setFormData({ name: "", email: "", password: "" });
+                  setError("");
+                  setPendingVerification(false);
+                  setVerificationCode("");
                 }}
                 className="ml-1 text-teal-600 hover:text-teal-700 font-medium transition-colors"
               >
