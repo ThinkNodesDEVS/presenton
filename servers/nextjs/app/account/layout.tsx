@@ -2,10 +2,12 @@ import React from "react";
 import Link from "next/link";
 import { User, CreditCard, LogOut } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
+import Header from "@/app/(presentation-generator)/dashboard/components/Header";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <Header />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-900">Account</h1>
