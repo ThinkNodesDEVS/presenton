@@ -67,10 +67,9 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
         } else {
           setIsLoading(false);
         }
-      } else if (route !== '/') {
-        router.push('/');
-        setLoadingToFalseAfterNavigatingTo('/');
       } else {
+        // Keys/config missing or invalid – do not redirect away from current route
+        // Allow the app to load and let pages handle missing config gracefully
         setIsLoading(false);
       }
     } else {
