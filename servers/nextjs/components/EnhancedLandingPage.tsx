@@ -26,6 +26,8 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import logo from "@/images/logo.png";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
 
 const rotatingPhrases = [
   "Close deals",
@@ -61,6 +63,7 @@ const trustSignals = [
 ];
 
 export default function EnhancedLandingPage() {
+  const { isSignedIn, isLoaded } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
@@ -158,6 +161,16 @@ export default function EnhancedLandingPage() {
 
             {/* Enhanced Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6">
+              {isLoaded && isSignedIn ? (
+                <Link href="/dashboard">
+                  <Button
+                    className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
+                    size="lg"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
               <Button
                 onClick={() => setIsSignUpOpen(true)}
                 className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
@@ -165,6 +178,7 @@ export default function EnhancedLandingPage() {
               >
                 Get Started Free
               </Button>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -190,6 +204,17 @@ export default function EnhancedLandingPage() {
                   Features
                 </a>
               </nav> */}
+              {isLoaded && isSignedIn ? (
+                <Link href="/dashboard" className="w-full">
+                  <Button
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-full bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white rounded-xl font-semibold"
+                    size="lg"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
               <Button
                 onClick={() => {
                   setIsSignUpOpen(true);
@@ -200,6 +225,7 @@ export default function EnhancedLandingPage() {
               >
                 Get Started Free
               </Button>
+              )}
             </div>
           </div>
         )}
@@ -358,6 +384,8 @@ export default function EnhancedLandingPage() {
                 }}
                 className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start"
               >
+                {isLoaded && isSignedIn ? (
+                  <Link href="/dashboard">
                 <motion.div
                   whileHover={{
                     y: -5,
@@ -367,12 +395,11 @@ export default function EnhancedLandingPage() {
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
                 >
                   <Button
-                    onClick={() => setIsSignUpOpen(true)}
                     className="group relative btn-enhanced bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white px-8 py-4 rounded-xl text-lg font-semibold"
                     size="lg"
                   >
                     <span className="relative z-10 flex items-center">
-                      Create Your First Deck
+                          Dashboard
                       <motion.div
                         animate={{ x: [0, 4, 0] }}
                         transition={{
@@ -385,20 +412,40 @@ export default function EnhancedLandingPage() {
                         <ChevronRight className="ml-1" size={20} />
                       </motion.div>
                     </span>
-                    <span className="absolute inset-0 overflow-hidden rounded-xl">
-                      <motion.span
-                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-white/20 to-transparent transform skew-x-[20deg]"
-                        animate={{ x: ["-100%", "200%"] }}
+                      </Button>
+                    </motion.div>
+                  </Link>
+                ) : (
+                  <motion.div
+                    whileHover={{
+                      y: -5,
+                      boxShadow: "0 15px 30px rgba(15, 118, 110, 0.25)",
+                    }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <Button
+                      onClick={() => setIsSignUpOpen(true)}
+                      className="group relative btn-enhanced bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white px-8 py-4 rounded-xl text-lg font-semibold"
+                      size="lg"
+                    >
+                      <span className="relative z-10 flex items-center">
+                        Create Your First Deck
+                        <motion.div
+                          animate={{ x: [0, 4, 0] }}
                         transition={{
                           duration: 1.5,
                           repeat: Infinity,
-                          repeatDelay: 3,
+                            ease: "easeInOut",
+                            repeatDelay: 1,
                         }}
-                        style={{ width: "50%" }}
-                      />
+                        >
+                          <ChevronRight className="ml-1" size={20} />
+                        </motion.div>
                     </span>
                   </Button>
                 </motion.div>
+                )}
 
                 {/* <button className="group px-10 py-4 rounded-2xl text-lg font-semibold border-2 border-gray-300 text-gray-700 hover:border-[#066678] hover:text-[#066678] transition-all duration-300">
                 <span className="flex items-center justify-center gap-2">
@@ -894,6 +941,20 @@ export default function EnhancedLandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            {isLoaded && isSignedIn ? (
+              <Link href="/dashboard">
+                <Button
+                  className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
+                  size="lg"
+                >
+                  Dashboard
+                  <ArrowRight
+                    className="transition-transform group-hover:translate-x-1"
+                    size={20}
+                  />
+                </Button>
+              </Link>
+            ) : (
             <Button
               onClick={() => setIsSignUpOpen(true)}
               className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
@@ -905,6 +966,7 @@ export default function EnhancedLandingPage() {
                 size={20}
               />
             </Button>
+            )}
           </div>
 
           {/* Trust Indicators */}
