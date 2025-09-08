@@ -111,9 +111,9 @@ async def create_presentation(
     prompt: Annotated[str, Body()],
     n_slides: Annotated[int, Body()],
     language: Annotated[str, Body()],
+    request: Request,
     file_paths: Annotated[Optional[List[str]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
-    request: Request,
 ):
     presentation_id = get_random_uuid()
     user_id = get_user_id_from_request(request)
