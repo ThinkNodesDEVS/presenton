@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 async function getPresentationId(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id");
   if (!id) {
-    throw new ApiError("Presentation ID not found");
+    throw new ApiError("Deck ID not found");
   }
   return id;
 }
@@ -207,7 +207,7 @@ async function getSlidesAndSpeakerNotes(page: Page) {
 async function getSlidesWrapper(page: Page): Promise<ElementHandle<Element>> {
   const slides_wrapper = await page.$("#presentation-slides-wrapper");
   if (!slides_wrapper) {
-    throw new ApiError("Presentation slides not found");
+    throw new ApiError("Deck slides not found");
   }
   return slides_wrapper;
 }

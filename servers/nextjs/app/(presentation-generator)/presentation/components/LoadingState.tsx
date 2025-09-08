@@ -25,7 +25,7 @@ const LoadingState = () => {
                 <div className="bg-white rounded-xl p-6 w-full">
                     <div className="flex items-center justify-center space-x-4 ">
 
-                        <h2 className="text-2xl font-semibold text-gray-800">Creating Your Presentation</h2>
+                        <h2 className="text-2xl font-semibold text-gray-800">Creating Your Deck</h2>
                     </div>
                     <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-xl shadow-sm p-6 mb-4">
                         <div className="min-h-[120px] flex items-center justify-center">

@@ -38,7 +38,7 @@ const OutlinePage: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-72px)]">
+    <div className="min-h-[calc(100vh-72px)] h-full">
       <OverlayLoader
         show={loadingState.isLoading}
         text={loadingState.message}
@@ -47,15 +47,15 @@ const OutlinePage: React.FC = () => {
       />
 
       <Wrapper className="h-full flex flex-col w-full">
-        <div className="flex-grow overflow-y-hidden w-[1200px] mx-auto">
+        <div className="flex-grow overflow-y-hidden w-full max-w-[1200px] px-4 sm:px-6 mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-[50%] mx-auto my-4 grid-cols-2">
-              <TabsTrigger value={TABS.OUTLINE}>Outline & Content</TabsTrigger>
-              <TabsTrigger value={TABS.LAYOUTS}>Select Template</TabsTrigger>
+            <TabsList className="grid w-full sm:w-[80%] md:w-[60%] lg:w-[50%] mx-auto my-2 sm:my-4 grid-cols-2">
+              <TabsTrigger value={TABS.OUTLINE} className="text-sm sm:text-base">Outline & Content</TabsTrigger>
+              <TabsTrigger value={TABS.LAYOUTS} className="text-sm sm:text-base">Select Template</TabsTrigger>
             </TabsList>
 
             <div className="flex-grow w-full overflow-y-auto custom_scrollbar">
-              <TabsContent value={TABS.OUTLINE}>
+              <TabsContent value={TABS.OUTLINE} className="px-0 sm:px-2">
                 <div>
                   <OutlineContent
                     outlines={outlines}
@@ -70,7 +70,7 @@ const OutlinePage: React.FC = () => {
               </TabsContent>
 
               <TabsContent value={TABS.LAYOUTS}>
-                <div>
+                <div className="px-0 sm:px-2">
                   <LayoutSelection
                     selectedLayoutGroup={selectedLayoutGroup}
                     onSelectLayoutGroup={setSelectedLayoutGroup}
@@ -82,8 +82,8 @@ const OutlinePage: React.FC = () => {
         </div>
 
         {/* Fixed Button */}
-        <div className="py-4 border-t border-gray-200">
-          <div className="max-w-[1200px] mx-auto">
+        <div className="py-3 sm:py-4 border-t border-gray-200">
+          <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6">
             <GenerateButton
               loadingState={loadingState}
               streamState={streamState}

@@ -6,7 +6,7 @@
  * - Document content preview with markdown support
  * - Sidebar navigation for documents
  * - Document content editing and saving
- * - Presentation generation workflow
+ * - Deck generation workflow
  *
  * @component
  */

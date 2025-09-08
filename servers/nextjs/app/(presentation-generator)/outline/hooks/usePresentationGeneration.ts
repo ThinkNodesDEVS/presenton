@@ -89,9 +89,9 @@ export const usePresentationGeneration = (
         router.replace(`/presentation?id=${presentationId}&stream=true`);
       }
     } catch (error: any) {
-      console.error('Error In Presentation Generation(prepare).', error);
+      console.error('Error In Deck Generation(prepare).', error);
       toast.error("Generation Error", {
-        description: error.message || "Error In Presentation Generation(prepare).",
+        description: error.message || "Error In Deck Generation(prepare).",
       });
     } finally {
       setLoadingState(DEFAULT_LOADING_STATE);

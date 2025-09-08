@@ -5,7 +5,7 @@ import Header from "@/app/(presentation-generator)/dashboard/components/Header";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Decky | AI Presentation Generator",
+  title: "Decky | AI Deck Generator",
   description:
     "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
   alternates: {
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     "from idea to impressive",
   ],
   openGraph: {
-    title: "Create Data Presentation | Decky",
+    title: "Create Data Deck | Decky",
     description:
       "Create impressive presentations in minutes with Decky. Open-source AI presentation generator with custom layouts, multi-model support, and professional export options.",
     type: "website",
@@ -40,7 +40,7 @@ const page = () => {
       <Header />
       <div className="flex flex-col items-center justify-center  py-8">
         <h1 className="text-3xl font-semibold font-instrument_sans">
-          Create Presentation{" "}
+          Create Deck{" "}
         </h1>
         {/* <p className='text-sm text-gray-500'>We will generate a presentation for you</p> */}
       </div>

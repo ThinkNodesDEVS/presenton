@@ -87,7 +87,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     useFontLoader(fonts || []);
   }
   }, [presentationData,loading,isStreaming]);
-  // Presentation Mode View
+  // Deck Mode View
   if (isPresentMode) {
     return (
       <PresentationMode

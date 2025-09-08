@@ -470,7 +470,7 @@ export default function EnhancedLandingPage() {
 
             {/* Enhanced Right Column - Visual */}
             <div className="relative lg:block hidden">
-              {/* Enhanced Presentation Preview Mockup */}
+              {/* Enhanced Deck Preview Mockup */}
               <div
                 ref={mockupRef}
                 className="relative opacity-0 transform translate-x-8 transition-all duration-700 delay-400"

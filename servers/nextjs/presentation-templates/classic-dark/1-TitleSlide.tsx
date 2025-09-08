@@ -17,7 +17,7 @@ const titleSlideSchema = z.object({
     description: "Presenter name",
   }),
   date: z.string().min(3).max(50).default('April 13, 2025').meta({
-    description: "Presentation date",
+    description: "Deck date",
   }),
   image: ImageSchema.default({
     __image_url__: 'https://images.pexels.com/photos/9669089/pexels-photo-9669089.jpeg',
