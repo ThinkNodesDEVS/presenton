@@ -1,7 +1,5 @@
 "use client";
 
-const TEMPLATE = 'decky';
-
 export const getHeader = async () => {
   const token = await (globalThis as any)?.Clerk?.session?.getToken({ template: 'decky' });
 
