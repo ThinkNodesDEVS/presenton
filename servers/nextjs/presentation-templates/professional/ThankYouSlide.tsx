@@ -211,7 +211,7 @@ const ThankYouSlide = ({ data }: { data: Partial<SchemaType> }) => {
               )}
             </div>
 
-            {/* Presentation Date */}
+            {/* Deck Date */}
             {presentationDate && (
               <div className="text-right">
                 <div className="text-lg font-bold text-gray-900">

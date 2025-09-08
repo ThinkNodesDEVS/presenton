@@ -3,7 +3,7 @@ import Header from '@/app/(presentation-generator)/dashboard/components/Header'
 import { Metadata } from 'next'
 import OutlinePage from './components/OutlinePage'
 export const metadata: Metadata = {
-  title: "Outline Presentation",
+  title: "Outline Deck",
   description: "Customize and organize your presentation outline. Drag and drop slides, add charts, and generate your presentation with ease.",
   alternates: {
     canonical: "https://presenton.ai/create"

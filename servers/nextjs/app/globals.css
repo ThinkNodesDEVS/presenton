@@ -103,15 +103,32 @@ body {
 
 @layer base {
   :root {
+    /* Decky Brand Colors */
+    --deep-navy: 216 31% 15%;
+    --electric-orange: 15 100% 60%;
+    --bright-teal: 185 91% 45%;
+
+    /* Neutrals */
+    --pure-white: 0 0% 100%;
+    --light-gray: 210 11% 96%;
+    --medium-gray: 210 6% 56%;
+    --dark-gray: 220 9% 26%;
+
+    /* Status Colors */
+    --success-green: 142 71% 45%;
+    --warning-yellow: 43 96% 56%;
+    --error-red: 10 79% 48%;
+    --info-blue: 217 91% 60%;
+
     --background: #fcfcfc;
     --foreground: #171717;
     --card: #fcfcfc;
     --card-foreground: #171717;
     --popover: #fcfcfc;
     --popover-foreground: #525252;
-    --primary: #066678;
+    --primary: 216 31% 15%;
     --primary-foreground: #ffffff;
-    --secondary: #ff6b35;
+    --secondary: 15 100% 60%;
     --secondary-foreground: #171717;
     --muted: #ededed;
     --muted-foreground: #202020;
@@ -121,20 +138,20 @@ body {
     --destructive-foreground: #fffcfc;
     --border: #dfdfdf;
     --input: #f6f6f6;
-    --ring: #72e3ad;
-    --chart-1: #72e3ad;
+    --ring: 185 91% 45%;
+    --chart-1: 185 91% 45%;
     --chart-2: #3b82f6;
     --chart-3: #8b5cf6;
     --chart-4: #f59e0b;
     --chart-5: #10b981;
     --sidebar: #fcfcfc;
     --sidebar-foreground: #707070;
-    --sidebar-primary: #066678;
+    --sidebar-primary: 216 31% 15%;
     --sidebar-primary-foreground: #1e2723;
     --sidebar-accent: #ededed;
     --sidebar-accent-foreground: #202020;
     --sidebar-border: #dfdfdf;
-    --sidebar-ring: #066678;
+    --sidebar-ring: 216 31% 15%;
     --font-sans: Syne, ui-sans-serif, sans-serif, system-ui;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: monospace;
@@ -157,13 +174,24 @@ body {
   }
 
   .dark {
+    /* Decky Brand Colors - Dark Theme */
+    --deep-navy: 216 31% 8%;
+    --electric-orange: 15 100% 65%;
+    --bright-teal: 185 91% 55%;
+
+    /* Neutrals - Dark Theme */
+    --pure-white: 0 0% 100%;
+    --light-gray: 220 13% 18%;
+    --medium-gray: 215 14% 34%;
+    --dark-gray: 220 13% 69%;
+
     --background: #121212;
     --foreground: #e2e8f0;
     --card: #171717;
     --card-foreground: #e2e8f0;
     --popover: #242424;
     --popover-foreground: #a9a9a9;
-    --primary: #006239;
+    --primary: 216 31% 8%;
     --primary-foreground: #dde8e3;
     --secondary: #242424;
     --secondary-foreground: #fafafa;
@@ -175,20 +203,20 @@ body {
     --destructive-foreground: #ede9e8;
     --border: #292929;
     --input: #242424;
-    --ring: #4ade80;
-    --chart-1: #4ade80;
+    --ring: 185 91% 55%;
+    --chart-1: 185 91% 55%;
     --chart-2: #60a5fa;
     --chart-3: #a78bfa;
     --chart-4: #fbbf24;
     --chart-5: #2dd4bf;
     --sidebar: #121212;
     --sidebar-foreground: #898989;
-    --sidebar-primary: #006239;
+    --sidebar-primary: 216 31% 8%;
     --sidebar-primary-foreground: #dde8e3;
     --sidebar-accent: #313131;
     --sidebar-accent-foreground: #fafafa;
     --sidebar-border: #292929;
-    --sidebar-ring: #4ade80;
+    --sidebar-ring: 185 91% 55%;
     --font-sans: Syne, ui-sans-serif, sans-serif, system-ui;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: monospace;

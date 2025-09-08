@@ -8,6 +8,7 @@ import {
 import { jsonrepair } from "jsonrepair";
 import { toast } from "sonner";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 export const usePresentationStreaming = (
   presentationId: string,
@@ -20,21 +21,31 @@ export const usePresentationStreaming = (
   const previousSlidesLength = useRef(0);
 
   useEffect(() => {
-    let eventSource: EventSource;
     let accumulatedChunks = "";
+    const controller = new AbortController();
 
     const initializeStream = async () => {
       dispatch(setStreaming(true));
       dispatch(clearPresentationData());
 
       trackEvent(MixpanelEvent.Presentation_Stream_API_Call);
-
-      eventSource = new EventSource(
-        `/api/v1/ppt/presentation/stream?presentation_id=${presentationId}`
+      const headers = await getHeader();
+      (headers as any).Accept = "text/event-stream";
+      const response = await fetch(`/api/v1/ppt/presentation/stream?presentation_id=${presentationId}`,
+        { headers, signal: controller.signal }
       );
-
-      eventSource.addEventListener("response", (event) => {
-        const data = JSON.parse(event.data);
+      if (!response.ok || !response.body) {
+        throw new Error("Failed to connect to the server");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const processEvent = (rawEvent: string) => {
+        const lines = rawEvent.split("\n");
+        const dataLine = lines.find(l => l.startsWith("data:"));
+        if (!dataLine) return;
+        const json = dataLine.slice(5).trim();
+        const data = JSON.parse(json);
 
         switch (data.type) {
           case "chunk":
@@ -68,14 +79,14 @@ export const usePresentationStreaming = (
               dispatch(setPresentationData(data.presentation));
               dispatch(setStreaming(false));
               setLoading(false);
-              eventSource.close();
+              controller.abort();
 
               // Remove stream parameter from URL
               const newUrl = new URL(window.location.href);
               newUrl.searchParams.delete("stream");
               window.history.replaceState({}, "", newUrl.toString());
             } catch (error) {
-              eventSource.close();
+              controller.abort();
               console.error("Error parsing accumulated chunks:", error);
             }
             accumulatedChunks = "";
@@ -85,7 +96,7 @@ export const usePresentationStreaming = (
             dispatch(setPresentationData(data.presentation));
             setLoading(false);
             dispatch(setStreaming(false));
-            eventSource.close();
+            controller.abort();
 
             // Remove stream parameter from URL
             const newUrl = new URL(window.location.href);
@@ -93,7 +104,7 @@ export const usePresentationStreaming = (
             window.history.replaceState({}, "", newUrl.toString());
             break;
           case "error":
-            eventSource.close();
+            controller.abort();
             toast.error("Error in outline streaming", {
               description:
                 data.detail ||
@@ -104,15 +115,19 @@ export const usePresentationStreaming = (
             setError(true);
             break;
         }
-      });
-
-      eventSource.onerror = (error) => {
-        console.error("EventSource failed:", error);
-        setLoading(false);
-        dispatch(setStreaming(false));
-        setError(true);
-        eventSource.close();
       };
+      const pump = async (): Promise<void> => {
+        const { value, done } = await reader.read();
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+        for (const part of parts) {
+          if (part.trim()) processEvent(part);
+        }
+        await pump();
+      };
+      await pump();
     };
 
     if (stream) {
@@ -122,9 +137,7 @@ export const usePresentationStreaming = (
     }
 
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      controller.abort();
     };
   }, [presentationId, stream, dispatch, setLoading, setError, fetchUserSlides]);
 };

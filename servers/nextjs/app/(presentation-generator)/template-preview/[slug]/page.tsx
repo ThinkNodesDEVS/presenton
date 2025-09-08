@@ -173,9 +173,9 @@ const GroupLayoutPreview = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {/* Navigation */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4">
             <Button
               variant="outline"
               size="sm"
@@ -183,10 +183,10 @@ const GroupLayoutPreview = () => {
                 trackEvent(MixpanelEvent.TemplatePreview_Back_Button_Clicked, { pathname });
                 router.back();
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Back</span>
             </Button>
             <Button
               variant="outline"
@@ -195,23 +195,23 @@ const GroupLayoutPreview = () => {
                 trackEvent(MixpanelEvent.TemplatePreview_All_Groups_Button_Clicked, { pathname });
                 router.push("/template-preview");
               }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
             >
-              <Home className="w-4 h-4" />
-              All Groups
+              <Home className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>All Groups</span>
             </Button>
-             {slug.includes('custom-') && <button className=" border border-red-200 flex justify-center items-center gap-2 text-red-700 px-4 py-1 rounded-md" onClick={() => {
+             {slug.includes('custom-') && <button className="border border-red-200 flex justify-center items-center gap-1 sm:gap-2 text-red-700 px-2 sm:px-4 py-1 rounded-md text-xs sm:text-sm" onClick={() => {
             trackEvent(MixpanelEvent.TemplatePreview_Delete_Templates_Button_Clicked, { pathname });
             trackEvent(MixpanelEvent.TemplatePreview_Delete_Templates_API_Call);
             deleteLayouts();
-          }}><Trash2 className="w-4 h-4" />Delete</button>}
+          }}><Trash2 className="w-3 h-3 sm:w-4 sm:h-4" /><span>Delete</span></button>}
           </div>
 
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 capitalize">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 capitalize">
               {templateMeta?.name || layoutGroup[0].groupName} Layouts
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
               {layoutGroup.length} layout{layoutGroup.length !== 1 ? "s" : ""} • {templateMeta?.description || layoutGroup[0].groupName}
             </p>
           </div>
@@ -220,8 +220,8 @@ const GroupLayoutPreview = () => {
       </header>
 
       {/* Layout Grid */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+        <div className="space-y-4 sm:space-y-8">
           {layoutGroup.map((layout: any, index: number) => {
             const {
               component: LayoutComponent,
@@ -236,14 +236,14 @@ const GroupLayoutPreview = () => {
                 className="overflow-hidden shadow-md hover:shadow-lg transition-shadow"
               >
                 {/* Layout Header */}
-                <div className="bg-white px-6 py-4 border-b">
-                  <div className="flex items-center justify-between">
+                <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 border-b">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                         {name}
                       </h3>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-sm text-gray-500 font-mono">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
+                        <span className="text-xs sm:text-sm text-gray-500 font-mono truncate max-w-[180px] sm:max-w-none">
                           {fileName}
                         </span>
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -251,15 +251,15 @@ const GroupLayoutPreview = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                      <div className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-gray-100 text-gray-700">
                         Layout #{index + 1}
                       </div>
                       {isCustom && (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 bg-blue-50 border border-blue-400 text-blue-700"
+                          className="flex items-center gap-1 sm:gap-2 bg-blue-50 border border-blue-400 text-blue-700 text-xs sm:text-sm px-2 sm:px-3"
                           onClick={() => {
                             trackEvent(MixpanelEvent.TemplatePreview_Open_Editor_Button_Clicked, { pathname });
                             openEditor(fileName);
@@ -267,7 +267,7 @@ const GroupLayoutPreview = () => {
                           disabled={!layoutsMap[fileName]}
                           title={!layoutsMap[fileName] ? "Loading layout code..." : "Edit layout code"}
                         >
-                          <Pencil className="w-4 h-4" /> Edit
+                          <Pencil className="w-3 h-3 sm:w-4 sm:h-4" /> Edit
                         </Button>
                       )}
                     </div>
@@ -275,8 +275,10 @@ const GroupLayoutPreview = () => {
                 </div>
 
                 {/* Layout Content */}
-                <div className="bg-gray-50 aspect-video max-w-[1280px] w-full">
-                  <LayoutComponent data={sampleData} />
+                <div className="bg-gray-50 aspect-video w-full overflow-hidden">
+                  <div className="scale-[0.9] sm:scale-[0.95] md:scale-100 origin-top-left w-full h-full">
+                    <LayoutComponent data={sampleData} />
+                  </div>
                 </div>
               </Card>
             );
@@ -285,10 +287,10 @@ const GroupLayoutPreview = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-16">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+      <footer className="bg-white border-t mt-8 sm:mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
           <div className="text-center text-gray-600">
-            <p>
+            <p className="text-sm sm:text-base">
               {layoutGroup[0].groupName} • {layoutGroup.length} components
             </p>
           </div>
@@ -299,15 +301,15 @@ const GroupLayoutPreview = () => {
       {isCustom && (
         <Sheet open={editorOpen} onOpenChange={(open) => { if (!open) handleCancel(); }}>
           <SheetContent side="right" className="w-full sm:max-w-[860px] p-0">
-            <SheetHeader className="px-6 py-4 border-b">
+            <SheetHeader className="px-3 sm:px-6 py-3 sm:py-4 border-b">
               <SheetTitle className="flex items-center justify-between w-full">
-                <span className="flex items-center gap-2 text-purple-800">
-                  <Code className="w-5 h-5 text-purple-600" />
+                <span className="flex items-center gap-1 sm:gap-2 text-purple-800 text-sm sm:text-base">
+                  <Code className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   HTML Editor
                 </span>
               </SheetTitle>
             </SheetHeader>
-            <div className="space-y-4 px-2 overflow-y-auto h-[85%]">
+            <div className="space-y-2 sm:space-y-4 px-2 overflow-y-auto h-[calc(100%-130px)]">
               <div className="container__content_area">
                 <Editor
                   value={currentCode}
@@ -316,11 +318,16 @@ const GroupLayoutPreview = () => {
                   padding={10}
                   id="layout-code-editor"
                   name="layout-code-editor"
-                  className="container__editor"
+                  className="container__editor text-sm sm:text-base font-mono min-h-[300px]"
+                  style={{
+                    fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace',
+                    fontSize: '14px',
+                    lineHeight: '1.5',
+                  }}
                 />
               </div>
             </div>
-            <SheetFooter className="px-6 py-4 border-b">
+            <SheetFooter className="px-3 sm:px-6 py-3 sm:py-4 border-t fixed bottom-0 left-0 right-0 bg-white">
               <SheetTitle className="flex items-center justify-between w-full">
                 <div></div>
                 <div className="flex gap-2">
@@ -328,19 +335,19 @@ const GroupLayoutPreview = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleCancel}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs sm:text-sm"
                     disabled={isSaving}
                   >
-                    <X size={14} />
+                    <X size={12} className="sm:w-4 sm:h-4" />
                     Cancel
                   </Button>
                   <Button
                     onClick={handleSave}
-                    className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700"
+                    className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm"
                     size="sm"
                     disabled={isSaving}
                   >
-                    <Save size={14} />
+                    <Save size={12} className="sm:w-4 sm:h-4" />
                     Save HTML
                   </Button>
                 </div>

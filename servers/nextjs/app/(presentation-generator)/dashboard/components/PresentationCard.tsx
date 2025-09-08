@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { DashboardApi } from "@/app/(presentation-generator)/services/api/dashboard";
 import { DotsVerticalIcon, TrashIcon } from "@radix-ui/react-icons";
+import { Heart, Lock, User } from "lucide-react";
 import {
   Popover,
   PopoverTrigger,
@@ -11,19 +12,34 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useGroupLayouts } from "@/app/(presentation-generator)/hooks/useGroupLayouts";
+import { cn } from "@/lib/utils";
 
 export const PresentationCard = ({
   id,
   title,
   created_at,
   slide,
-  onDeleted
+  onDeleted,
+  thumbnail,
+  isFavorite = false,
+  onFavoriteToggle,
+  lastViewed,
+  createdBy = "you",
+  status = "private",
+  n_slides = 0
 }: {
   id: string;
   title: string;
   created_at: string;
   slide: any;
   onDeleted?: (presentationId: string) => void;
+  thumbnail?: string;
+  isFavorite?: boolean;
+  onFavoriteToggle?: (presentationId: string) => void;
+  lastViewed?: string;
+  createdBy?: string;
+  status?: 'private' | 'public';
+  n_slides?: number;
 }) => {
   const router = useRouter();
   const { renderSlideContent } = useGroupLayouts();
@@ -39,11 +55,10 @@ export const PresentationCard = ({
     e.preventDefault();
     e.stopPropagation();
 
-
     const response = await DashboardApi.deletePresentation(id);
 
     if (response) {
-      toast.success("Presentation deleted", {
+      toast.success("Deck deleted", {
         description: "The presentation has been deleted successfully",
       });
       if (onDeleted) {
@@ -51,6 +66,23 @@ export const PresentationCard = ({
       }
     } else {
       toast.error("Error deleting presentation");
+    }
+  };
+
+  const handleFavoriteToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (onFavoriteToggle) {
+      onFavoriteToggle(id);
+      toast.success(
+        isFavorite ? "Removed from favorites" : "Added to favorites",
+        {
+          description: isFavorite 
+            ? "This presentation has been removed from your favorites" 
+            : "This presentation has been added to your favorites"
+        }
+      );
     }
   };
   return (
