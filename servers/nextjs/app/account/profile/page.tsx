@@ -125,17 +125,7 @@ export default function AccountProfile() {
             </div>
           </div>
         </div>
-        <div className="col-span-12 md:col-span-6">
-          <div className="bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <label className="block text-sm text-slate-600 mb-2">User ID</label>
-            <div className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 truncate">
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-slate-100">
-                <IdCard className="w-4 h-4 text-slate-700" />
-              </span>
-              <span className="truncate">{user?.id}</span>
-            </div>
-          </div>
-        </div>
+    
       </div>
 
       {/* Status Row */}
