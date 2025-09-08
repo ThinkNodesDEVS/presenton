@@ -35,7 +35,6 @@ const mockupSlides = [
 
 // Trust signals data
 const trustSignals = [
-  { number: "98%", label: "User Satisfaction", icon: CheckCircle },
   { number: "3hrs", label: "Average Time Saved", icon: Clock },
 ];
 
