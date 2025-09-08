@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { setOutlines } from "@/store/slices/presentationGeneration";
 import { jsonrepair } from "jsonrepair";
 import { RootState } from "@/store/store";
+import { getHeader } from "@/app/(presentation-generator)/services/api/header";
 
 
 
@@ -21,31 +22,40 @@ export const useOutlineStreaming = (presentationId: string | null) => {
   useEffect(() => {
     if (!presentationId || outlines.length > 0) return;
 
-    let eventSource: EventSource;
     let accumulatedChunks = "";
+    const controller = new AbortController();
 
     const initializeStream = async () => {
       setIsStreaming(true)
       setIsLoading(true)
       try {
-        eventSource = new EventSource(
-          `/api/v1/ppt/outlines/stream?presentation_id=${presentationId}`
+        const headers = await getHeader();
+        (headers as any).Accept = "text/event-stream";
+        const response = await fetch(`/api/v1/ppt/outlines/stream?presentation_id=${presentationId}`,
+          { headers, signal: controller.signal }
         );
+        if (!response.ok || !response.body) {
+          throw new Error("Failed to connect to the server");
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-        eventSource.addEventListener("response", (event) => {
-          const data = JSON.parse(event.data);
+        const processEvent = (rawEvent: string) => {
+          const lines = rawEvent.split("\n");
+          const dataLine = lines.find(l => l.startsWith("data:"));
+          if (!dataLine) return;
+          const json = dataLine.slice(5).trim();
+          const data = JSON.parse(json);
+
           switch (data.type) {
             case "chunk":
-              // 
               accumulatedChunks += data.chunk;
-              // 
               try {
                 const repairedJson = jsonrepair(accumulatedChunks);
                 const partialData = JSON.parse(repairedJson);
-                
                 if (partialData.slides) {
                   const nextSlides: { content: string }[] = partialData.slides || [];
-                  // Determine which slide index changed to minimize live parsing
                   try {
                     const prev = prevSlidesRef.current || [];
                     let changedIndex: number | null = null;
@@ -57,7 +67,6 @@ export const useOutlineStreaming = (presentationId: string | null) => {
                         changedIndex = i;
                       }
                     }
-                    // Keep active index stable if no change detected; and ensure non-decreasing
                     const prevActive = activeIndexRef.current;
                     let nextActive = changedIndex ?? prevActive;
                     if (nextActive < prevActive) {
@@ -65,13 +74,11 @@ export const useOutlineStreaming = (presentationId: string | null) => {
                     }
                     activeIndexRef.current = nextActive;
                     setActiveSlideIndex(nextActive);
-
                     if (nextActive > highestIndexRef.current) {
                       highestIndexRef.current = nextActive;
                       setHighestActiveIndex(nextActive);
                     }
                   } catch {}
-
                   prevSlidesRef.current = nextSlides;
                   dispatch(setOutlines(nextSlides));
                   setIsLoading(false)
@@ -80,67 +87,61 @@ export const useOutlineStreaming = (presentationId: string | null) => {
                 // JSON isn't complete yet, continue accumulating
               }
               break;
-
             case "complete":
-              
               try {
                 const outlinesData: { content: string }[] = data.presentation.outlines.slides;
                 dispatch(setOutlines(outlinesData));
-                  setIsStreaming(false)
-                  setIsLoading(false)
-                  setActiveSlideIndex(null)
-                  setHighestActiveIndex(-1)
-                  prevSlidesRef.current = outlinesData;
-                  activeIndexRef.current = -1;
-                  highestIndexRef.current = -1;
-                  eventSource.close();
+                setIsStreaming(false)
+                setIsLoading(false)
+                setActiveSlideIndex(null)
+                setHighestActiveIndex(-1)
+                prevSlidesRef.current = outlinesData;
+                activeIndexRef.current = -1;
+                highestIndexRef.current = -1;
+                controller.abort();
               } catch (error) {
+                controller.abort();
                 console.error("Error parsing accumulated chunks:", error);
                 toast.error("Failed to parse presentation data");
-                eventSource.close();
               }
               accumulatedChunks = "";
               break;
-
             case "closing":
-              
               setIsStreaming(false)
               setIsLoading(false)
               setActiveSlideIndex(null)
               setHighestActiveIndex(-1)
               activeIndexRef.current = -1;
               highestIndexRef.current = -1;
-              eventSource.close();
+              controller.abort();
               break;
             case "error":
-              
+              controller.abort();
               setIsStreaming(false)
               setIsLoading(false)
               setActiveSlideIndex(null)
               setHighestActiveIndex(-1)
               activeIndexRef.current = -1;
               highestIndexRef.current = -1;
-              eventSource.close();
-              toast.error('Error in outline streaming',
-                {
-                  description: data.detail || 'Failed to connect to the server. Please try again.',
-                }
-              );
+              toast.error('Error in outline streaming', {
+                description: data.detail || 'Failed to connect to the server. Please try again.',
+              });
               break;
           }
-        });
-
-        eventSource.onerror = () => {
-          
-          setIsStreaming(false)
-          setIsLoading(false)
-          setActiveSlideIndex(null)
-          setHighestActiveIndex(-1)
-          activeIndexRef.current = -1;
-          highestIndexRef.current = -1;
-          eventSource.close();
-          toast.error("Failed to connect to the server. Please try again.");
         };
+
+        const pump = async (): Promise<void> => {
+          const { value, done } = await reader.read();
+          if (done) return;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+          for (const part of parts) {
+            if (part.trim()) processEvent(part);
+          }
+          await pump();
+        };
+        await pump();
       } catch (error) {
         
         setIsStreaming(false)
@@ -154,9 +155,7 @@ export const useOutlineStreaming = (presentationId: string | null) => {
     };
     initializeStream();
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
+      controller.abort();
     };
   }, [presentationId, dispatch]);
 
