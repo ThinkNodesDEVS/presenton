@@ -113,7 +113,7 @@ async def create_presentation(
     language: Annotated[str, Body()],
     file_paths: Annotated[Optional[List[str]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
-    request: Request = None,
+    request: Request,
 ):
     presentation_id = get_random_uuid()
     user_id = get_user_id_from_request(request)
@@ -124,7 +124,7 @@ async def create_presentation(
         prompt=prompt,
         n_slides=n_slides,
         language=language,
-        file_paths=file_paths,
+        file_paths=file_paths or [],
     )
 
     sql_session.add(presentation)
