@@ -58,7 +58,6 @@ const mockupSlides = [
 
 // Trust signals data
 const trustSignals = [
-  { number: "98%", label: "User Satisfaction", icon: CheckCircle },
   { number: "3hrs", label: "Average Time Saved", icon: Clock },
 ];
 
@@ -171,13 +170,13 @@ export default function EnhancedLandingPage() {
                   </Button>
                 </Link>
               ) : (
-              <Button
-                onClick={() => setIsSignUpOpen(true)}
-                className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
-                size="lg"
-              >
-                Get Started Free
-              </Button>
+                <Button
+                  onClick={() => setIsSignUpOpen(true)}
+                  className="bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-xl hover:scale-105 hover:shadow-teal-500/25"
+                  size="lg"
+                >
+                  Get Started Free
+                </Button>
               )}
             </div>
 
@@ -215,16 +214,16 @@ export default function EnhancedLandingPage() {
                   </Button>
                 </Link>
               ) : (
-              <Button
-                onClick={() => {
-                  setIsSignUpOpen(true);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white rounded-xl font-semibold"
-                size="lg"
-              >
-                Get Started Free
-              </Button>
+                <Button
+                  onClick={() => {
+                    setIsSignUpOpen(true);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white rounded-xl font-semibold"
+                  size="lg"
+                >
+                  Get Started Free
+                </Button>
               )}
             </div>
           </div>
@@ -386,32 +385,36 @@ export default function EnhancedLandingPage() {
               >
                 {isLoaded && isSignedIn ? (
                   <Link href="/dashboard">
-                <motion.div
-                  whileHover={{
-                    y: -5,
-                    boxShadow: "0 15px 30px rgba(15, 118, 110, 0.25)",
-                  }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                >
-                  <Button
-                    className="group relative btn-enhanced bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white px-8 py-4 rounded-xl text-lg font-semibold"
-                    size="lg"
-                  >
-                    <span className="relative z-10 flex items-center">
-                          Dashboard
-                      <motion.div
-                        animate={{ x: [0, 4, 0] }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          repeatDelay: 1,
-                        }}
+                    <motion.div
+                      whileHover={{
+                        y: -5,
+                        boxShadow: "0 15px 30px rgba(15, 118, 110, 0.25)",
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 10,
+                      }}
+                    >
+                      <Button
+                        className="group relative btn-enhanced bg-gradient-to-r from-[#0f766e] to-[#0d9488] text-white px-8 py-4 rounded-xl text-lg font-semibold"
+                        size="lg"
                       >
-                        <ChevronRight className="ml-1" size={20} />
-                      </motion.div>
-                    </span>
+                        <span className="relative z-10 flex items-center">
+                          Dashboard
+                          <motion.div
+                            animate={{ x: [0, 4, 0] }}
+                            transition={{
+                              duration: 1.5,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                              repeatDelay: 1,
+                            }}
+                          >
+                            <ChevronRight className="ml-1" size={20} />
+                          </motion.div>
+                        </span>
                       </Button>
                     </motion.div>
                   </Link>
@@ -433,18 +436,18 @@ export default function EnhancedLandingPage() {
                         Create Your First Deck
                         <motion.div
                           animate={{ x: [0, 4, 0] }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
                             ease: "easeInOut",
                             repeatDelay: 1,
-                        }}
+                          }}
                         >
                           <ChevronRight className="ml-1" size={20} />
                         </motion.div>
-                    </span>
-                  </Button>
-                </motion.div>
+                      </span>
+                    </Button>
+                  </motion.div>
                 )}
 
                 {/* <button className="group px-10 py-4 rounded-2xl text-lg font-semibold border-2 border-gray-300 text-gray-700 hover:border-[#066678] hover:text-[#066678] transition-all duration-300">
@@ -955,17 +958,17 @@ export default function EnhancedLandingPage() {
                 </Button>
               </Link>
             ) : (
-            <Button
-              onClick={() => setIsSignUpOpen(true)}
-              className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
-              size="lg"
-            >
-              Start Creating Free
-              <ArrowRight
-                className="transition-transform group-hover:translate-x-1"
-                size={20}
-              />
-            </Button>
+              <Button
+                onClick={() => setIsSignUpOpen(true)}
+                className="group bg-gradient-to-r from-[#066678] to-[#005264] hover:from-[#005264] hover:to-[#066678] text-white px-12 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:shadow-2xl hover:scale-105 hover:shadow-teal-500/30"
+                size="lg"
+              >
+                Start Creating Free
+                <ArrowRight
+                  className="transition-transform group-hover:translate-x-1"
+                  size={20}
+                />
+              </Button>
             )}
           </div>
 
