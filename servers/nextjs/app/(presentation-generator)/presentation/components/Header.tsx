@@ -25,6 +25,7 @@ import PDFIMAGE from "@/public/pdf.svg";
 import PPTXIMAGE from "@/public/pptx.svg";
 import Image from "next/image";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import logo from "@/images/logo.png";
 
 const Header = ({
   presentation_id,
@@ -242,7 +243,7 @@ const Header = ({
         <Announcement />
         <Wrapper className="flex items-center justify-between py-1">
           <Link href="/dashboard" className="min-w-[162px]">
-            <img className="h-16" src="/logo.png" alt="Presentation logo" />
+            <Image src={logo} alt="Decky Logo" width={55} height={55} />
           </Link>
 
           {/* Desktop Menu */}
