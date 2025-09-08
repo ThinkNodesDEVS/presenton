@@ -54,8 +54,8 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         const result = await signUp?.create({
           emailAddress: formData.email,
           password: formData.password,
-          firstName,
-          lastName,
+          // firstName,
+          // lastName,
         });
 
         // Handle email verification if required
