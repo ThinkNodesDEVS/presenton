@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { useSignUp, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const [error, setError] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -27,6 +28,26 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const router = useRouter();
 
 
+
+  // Load blocked domains from API (Neon-backed)
+  useEffect(() => {
+    const loadDomains = async () => {
+      try {
+        const res = await fetch("/api/blocked-email-domains");
+        if (!res.ok) return;
+        const data = await res.json();
+        setBlockedDomains(Array.isArray(data?.domains) ? data.domains : []);
+      } catch {}
+    };
+    loadDomains();
+  }, []);
+
+  const isBlockedEmail = (email: string) => {
+    const atIdx = email.lastIndexOf("@");
+    if (atIdx === -1) return false;
+    const domain = email.slice(atIdx + 1).toLowerCase();
+    return blockedDomains.includes(domain);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +68,11 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
           router.push("/dashboard");
         }
       } else {
+        // Block sign up for free email domains
+        if (isBlockedEmail(formData.email)) {
+          setError("Please use your work email address to sign up.");
+          return;
+        }
         // Handle Sign Up
         const nameParts = (formData.name || "").trim().split(/\s+/);
         const firstName = nameParts[0] || "";
@@ -54,8 +80,8 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         const result = await signUp?.create({
           emailAddress: formData.email,
           password: formData.password,
-          // firstName,
-          // lastName,
+          firstName,
+          lastName,
         });
 
         // Handle email verification if required
@@ -135,6 +161,11 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
     try {
       setIsLoading(true);
       setError("");
+      // Pre-check: if user typed an email, block immediately
+      if (!isLogin && formData.email && isBlockedEmail(formData.email)) {
+        setError("Please use your work email address to sign up.");
+        return;
+      }
       if (isLogin) {
         await signIn?.authenticateWithRedirect({
           strategy: "oauth_google",
