@@ -43,7 +43,7 @@ export const PresentationCard = ({
     const response = await DashboardApi.deletePresentation(id);
 
     if (response) {
-      toast.success("Presentation deleted", {
+      toast.success("Deck deleted", {
         description: "The presentation has been deleted successfully",
       });
       if (onDeleted) {

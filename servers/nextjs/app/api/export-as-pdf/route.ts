@@ -10,7 +10,7 @@ import { NextResponse, NextRequest } from 'next/server';
 export async function POST(req: NextRequest) {
   const { id, title } = await req.json();
   if (!id) {
-    return NextResponse.json({ error: "Missing Presentation ID" }, { status: 400 });
+    return NextResponse.json({ error: "Missing Deck ID" }, { status: 400 });
   }
   const browser = await puppeteer.launch({
     headless: true,

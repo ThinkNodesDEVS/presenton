@@ -59,7 +59,7 @@ const OutlineContent: React.FC<OutlineContentProps> = ({
             )}
             {/* <div className="flex items-center justify-between">
                 <h5 className="text-lg font-medium">
-                    Presentation Outline
+                    Deck Outline
                 </h5>
                 {isStreaming && (
                     <div className="flex items-center text-sm text-blue-600">

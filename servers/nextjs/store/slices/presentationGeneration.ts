@@ -50,7 +50,7 @@ const presentationGenerationSlice = createSlice({
     setLayoutLoading: (state, action: PayloadAction<boolean>) => {
       state.isLayoutLoading = action.payload;
     },
-    // Presentation ID
+    // Deck ID
     setPresentationId: (state, action: PayloadAction<string>) => {
       state.presentation_id = action.payload;
       state.error = null;

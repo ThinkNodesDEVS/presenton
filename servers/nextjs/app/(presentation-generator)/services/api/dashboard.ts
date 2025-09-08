@@ -57,7 +57,7 @@ export class DashboardApi {
         }
       );
       
-      return await ApiResponseHandler.handleResponse(response, "Presentation not found");
+      return await ApiResponseHandler.handleResponse(response, "Deck not found");
     } catch (error) {
       console.error("Error fetching presentation:", error);
       throw error;
