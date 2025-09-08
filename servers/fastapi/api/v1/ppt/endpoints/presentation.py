@@ -116,9 +116,11 @@ async def create_presentation(
     request: Request = None,
 ):
     presentation_id = get_random_uuid()
+    user_id = get_user_id_from_request(request)
 
     presentation = PresentationModel(
         id=presentation_id,
+        user_id=user_id,
         prompt=prompt,
         n_slides=n_slides,
         language=language,
