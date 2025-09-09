@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { useSignUp, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -12,11 +12,11 @@ interface SignUpModalProps {
 
 export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const [isLogin, setIsLogin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSsoLoading, setIsSsoLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
-  const [blockedDomains, setBlockedDomains] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -28,30 +28,9 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const router = useRouter();
 
 
-
-  // Load blocked domains from API (Neon-backed)
-  useEffect(() => {
-    const loadDomains = async () => {
-      try {
-        const res = await fetch("/api/blocked-email-domains");
-        if (!res.ok) return;
-        const data = await res.json();
-        setBlockedDomains(Array.isArray(data?.domains) ? data.domains : []);
-      } catch {}
-    };
-    loadDomains();
-  }, []);
-
-  const isBlockedEmail = (email: string) => {
-    const atIdx = email.lastIndexOf("@");
-    if (atIdx === -1) return false;
-    const domain = email.slice(atIdx + 1).toLowerCase();
-    return blockedDomains.includes(domain);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError("");
 
     try {
@@ -68,11 +47,6 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
           router.push("/dashboard");
         }
       } else {
-        // Block sign up for free email domains
-        if (isBlockedEmail(formData.email)) {
-          setError("Please use your work email address to sign up.");
-          return;
-        }
         // Handle Sign Up
         const nameParts = (formData.name || "").trim().split(/\s+/);
         const firstName = nameParts[0] || "";
@@ -110,13 +84,13 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       console.error("Authentication error:", err);
       setError(err.errors?.[0]?.message || "An error occurred. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleVerification = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsSubmitting(true);
     setError("");
 
     try {
@@ -143,7 +117,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       console.error("Verification error:", err);
       setError(err.errors?.[0]?.message || "Verification failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -159,13 +133,8 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
   const handleGoogleAuth = async () => {
     try {
-      setIsLoading(true);
+      setIsSsoLoading(true);
       setError("");
-      // Pre-check: if user typed an email, block immediately
-      if (!isLogin && formData.email && isBlockedEmail(formData.email)) {
-        setError("Please use your work email address to sign up.");
-        return;
-      }
       if (isLogin) {
         await signIn?.authenticateWithRedirect({
           strategy: "oauth_google",
@@ -183,7 +152,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
       console.error("Google auth error:", err);
       setError(err.errors?.[0]?.message || "Google authentication failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsSsoLoading(false);
     }
   };
 
@@ -225,6 +194,13 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 : "Create your account and start building impressive presentations"}
             </p>
           </div>
+
+          {/* Work email incentive */}
+          {!isLogin && (
+            <div className="mb-4 text-center text-md text-green-900">
+              Get access to  10 more slides if you sign in with a work email.
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -273,10 +249,10 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
               <button
                 type="submit"
-                  disabled={isLoading || verificationCode.length !== 6}
+                  disabled={isSubmitting || verificationCode.length !== 6}
                 className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                {isLoading ? (
+                {isSubmitting ? (
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="animate-spin" size={18} />
                     <span>Verifying...</span>
@@ -384,10 +360,10 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
                   <Loader2 className="animate-spin" size={18} />
                   <span>
@@ -413,7 +389,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             <button
               type="button"
               onClick={handleGoogleAuth}
-              disabled={isLoading}
+              disabled={isSsoLoading}
               className="w-full border border-gray-300 text-deep-navy py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-sm hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
@@ -422,7 +398,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 <path fill="#4CAF50" d="M24,44c4.717,0,9.002-1.813,12.25-4.771l-5.657-5.657C28.595,35.798,26.393,36.5,24,36.5 c-5.202,0-9.616-3.317-11.278-7.946l-6.535,5.036C9.505,39.556,16.227,44,24,44z"/>
                 <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.053,5.572 c0.001-0.001,0.002-0.001,0.003-0.002l5.657,5.657C35.759,39.127,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
               </svg>
-              <span>{isLogin ? "Sign in with Google" : "Sign up with Google"}</span>
+              <span>{isSsoLoading ? "Redirecting..." : (isLogin ? "Sign in with Google" : "Sign up with Google")}</span>
             </button>
           </form>
           )}
