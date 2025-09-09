@@ -1,5 +1,8 @@
 from collections.abc import AsyncGenerator
 import os
+import logging
+import time
+from urllib.parse import urlsplit
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     create_async_engine,
@@ -19,6 +22,10 @@ from models.sql.slide import SlideModel
 from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from models.sql.template import TemplateModel
 from utils.db_utils import get_database_url_and_connect_args
+from utils.get_env import get_database_url_env, get_run_migrations_on_start_env
+
+
+logger = logging.getLogger("presenton-backend")
 
 
 database_url, connect_args = get_database_url_and_connect_args()
@@ -49,25 +56,66 @@ async def get_container_db_async_session() -> AsyncGenerator[AsyncSession, None]
 
 # Create Database and Tables
 async def create_db_and_tables():
-    # Run Alembic migrations first (safe no-op if up-to-date)
+    # High-level context
     try:
-        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
-        # Ensure script_location is resolved relative to this file
-        alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "..", "migrations"))
-        # Set sqlalchemy.url for Alembic (sync driver)
-        from utils.db_utils import get_database_url_and_connect_args
-        url, _ = get_database_url_and_connect_args()
-        sync_url = (
-            url.replace("postgresql+asyncpg://", "postgresql://")
-            .replace("mysql+aiomysql://", "mysql://")
-            .replace("sqlite+aiosqlite://", "sqlite://")
-        )
-        alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-        command.upgrade(alembic_cfg, "head")
+        parsed = urlsplit(database_url)
+        db_desc = f"{parsed.scheme}://{parsed.hostname}:{parsed.port or ''}{parsed.path}"
     except Exception:
-        # Do not fail startup if Alembic is not configured correctly; fallback to create_all
-        pass
+        db_desc = database_url
 
+    logger.info("DB init: starting (driver=%s, ssl=%s)",
+                database_url.split(":", 1)[0],
+                "on" if connect_args.get("ssl") else "off")
+    logger.info("DB init: target=%s", db_desc)
+
+    # Run Alembic migrations first (safe no-op if up-to-date)
+    # Default: do NOT run migrations unless explicitly enabled
+    run_on_start = (get_run_migrations_on_start_env() or "").lower() in ("1", "true", "yes", "on")
+    disable_alembic = os.getenv("DISABLE_ALEMBIC", "").lower() in ("1", "true", "yes", "on")
+    if disable_alembic or not run_on_start:
+        logger.info("DB init: DISABLE_ALEMBIC is set; skipping Alembic migrations")
+    else:
+        try:
+            alembic_start = time.time()
+            logger.info("DB init: running Alembic migrations ...")
+
+            alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+            alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "..", "migrations"))
+
+            raw_env_url = get_database_url_env()
+            if not raw_env_url:
+                raise ValueError("DATABASE_URL environment variable must be set for Alembic")
+            sync_url = (
+                raw_env_url.replace("postgresql+asyncpg://", "postgresql://")
+                .replace("postgresql+psycopg://", "postgresql://")
+                .replace("mysql+aiomysql://", "mysql://")
+                .replace("sqlite+aiosqlite://", "sqlite://")
+            )
+            alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+            try:
+                parsed_sync = urlsplit(sync_url)
+                netloc = parsed_sync.netloc
+                if "@" in netloc:
+                    creds, hostpart = netloc.split("@", 1)
+                    if ":" in creds:
+                        user, _ = creds.split(":", 1)
+                        redacted_netloc = f"{user}:***@{hostpart}"
+                    else:
+                        redacted_netloc = f"{creds}@{hostpart}"
+                else:
+                    redacted_netloc = netloc
+                redacted_sync_url = parsed_sync._replace(netloc=redacted_netloc).geturl()
+                logger.info("DB init: Alembic sqlalchemy.url=%s", redacted_sync_url)
+            except Exception:
+                pass
+            command.upgrade(alembic_cfg, "head")
+            logger.info("DB init: Alembic migrations completed in %.2fs", time.time() - alembic_start)
+        except Exception as e:
+            logger.warning("DB init: Alembic migrations skipped due to error: %s", str(e), exc_info=True)
+            # Fallback continues to create_all below
+
+    meta_start = time.time()
+    logger.info("DB init: creating core tables ...")
     async with sql_engine.begin() as conn:
         await conn.run_sync(
             lambda sync_conn: SQLModel.metadata.create_all(
@@ -82,8 +130,8 @@ async def create_db_and_tables():
                 ],
             )
         )
+        logger.info("DB init: core tables ensured in %.2fs", time.time() - meta_start)
 
-        # Legacy safety: keep in-place migration as a guard for environments without Alembic
         def migrate_user_id_column(sync_conn):
             table_name = "presentationmodel"
             try:
@@ -96,10 +144,14 @@ async def create_db_and_tables():
                         )
                     )
             except Exception:
+                # Keep silent on legacy guard, but don't break flow
                 pass
 
+        logger.info("DB init: running legacy in-place migration guard ...")
         await conn.run_sync(migrate_user_id_column)
+        logger.info("DB init: legacy guard completed")
 
+    logger.info("DB init: creating container DB tables ...")
     async with container_db_engine.begin() as conn:
         await conn.run_sync(
             lambda sync_conn: SQLModel.metadata.create_all(
@@ -107,3 +159,4 @@ async def create_db_and_tables():
                 tables=[OllamaPullStatus.__table__],
             )
         )
+    logger.info("DB init: completed successfully")

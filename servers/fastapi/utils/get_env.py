@@ -97,6 +97,10 @@ def get_web_grounding_env():
     return os.getenv("WEB_GROUNDING")
 
 
+# App behavior flags
+def get_run_migrations_on_start_env():
+    return os.getenv("RUN_MIGRATIONS_ON_START")
+
 # Supabase
 def get_supabase_url_env():
     return os.getenv("SUPABASE_URL")
