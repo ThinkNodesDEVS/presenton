@@ -122,22 +122,22 @@ const startServers = async () => {
   });
 
   // Start App MCP (optional helper). Do not crash the app if it exits.
-  const appmcpProcess = spawn(
-    "python",
-    ["mcp_server.py", "--port", appmcpPort.toString()],
-    {
-      cwd: fastapiDir,
-      stdio: "inherit",
-      env: process.env,
-    },
-  );
+  // const appmcpProcess = spawn(
+  //   "python",
+  //   ["mcp_server.py", "--port", appmcpPort.toString()],
+  //   {
+  //     cwd: fastapiDir,
+  //     stdio: "inherit",
+  //     env: process.env,
+  //   },
+  // );
 
-  appmcpProcess.on("error", (err) => {
-    console.error("❌ App MCP process failed to start:", err);
-  });
-  appmcpProcess.on("exit", (code, signal) => {
-    console.warn(`⚠️ App MCP process exited with code ${code}, signal ${signal}`);
-  });
+  // appmcpProcess.on("error", (err) => {
+  //   console.error("❌ App MCP process failed to start:", err);
+  // });
+  // appmcpProcess.on("exit", (code, signal) => {
+  //   console.warn(`⚠️ App MCP process exited with code ${code}, signal ${signal}`);
+  // });
 
 
   console.log(`⚛️  Starting Next.js server on port ${nextjsPort}...`);
