@@ -117,23 +117,26 @@ const startServers = async () => {
   fastApiProcess.on("error", (err) => {
     console.error("FastAPI process failed to start:", err);
   });
+  fastApiProcess.on("exit", (code, signal) => {
+    console.error(`💥 FastAPI process exited with code ${code}, signal ${signal}`);
+  });
 
+  // Start App MCP (optional helper). Do not crash the app if it exits.
   const appmcpProcess = spawn(
     "python",
-    [
-      "mcp_server.py",
-      "--port",
-      appmcpPort.toString(),
-    ],
+    ["mcp_server.py", "--port", appmcpPort.toString()],
     {
       cwd: fastapiDir,
-      stdio: "ignore",
+      stdio: "inherit",
       env: process.env,
     },
   );
 
   appmcpProcess.on("error", (err) => {
     console.error("❌ App MCP process failed to start:", err);
+  });
+  appmcpProcess.on("exit", (code, signal) => {
+    console.warn(`⚠️ App MCP process exited with code ${code}, signal ${signal}`);
   });
 
 
@@ -156,35 +159,46 @@ const startServers = async () => {
     console.error(`💥 Next.js process exited with code ${code}, signal ${signal}`);
   });
 
-  console.log("🦙 Starting Ollama service...");
-  const ollamaProcess = spawn(
-    "ollama",
-    ["serve"],
-    {
-      cwd: "/",
-      stdio: "inherit",
-      env: process.env,
-    }
-  );
+  // Start Ollama only if explicitly selected as LLM provider
+  const shouldStartOllama = (process.env.LLM || "").toLowerCase() === "ollama";
+  let ollamaProcess = null;
+  if (shouldStartOllama) {
+    console.log("🦙 Starting Ollama service...");
+    ollamaProcess = spawn(
+      "ollama",
+      ["serve"],
+      {
+        cwd: "/",
+        stdio: "inherit",
+        env: process.env,
+      }
+    );
 
-  ollamaProcess.on("error", err => {
-    console.error("❌ Ollama process failed to start:", err);
-  });
+    ollamaProcess.on("error", err => {
+      console.error("❌ Ollama process failed to start:", err);
+    });
 
-  ollamaProcess.on("exit", (code, signal) => {
-    console.error(`💥 Ollama process exited with code ${code}, signal ${signal}`);
-  });
+    ollamaProcess.on("exit", (code, signal) => {
+      console.error(`💥 Ollama process exited with code ${code}, signal ${signal}`);
+    });
+  } else {
+    console.log("🦙 Skipping Ollama service (LLM provider is not 'ollama').");
+  }
 
 
 
 
   // Keep the Node process alive until any server exits
-  const exitCode = await Promise.race([
+  const waiters = [
     new Promise(resolve => fastApiProcess.on("exit", resolve)),
     new Promise(resolve => nextjsProcess.on("exit", resolve)),
-    new Promise(resolve => ollamaProcess.on("exit", resolve)),
-    new Promise(resolve => appmcpProcess.on("exit", resolve)),
-  ]);
+  ];
+  // Only watch Ollama if we actually started it
+  if (ollamaProcess) {
+    waiters.push(new Promise(resolve => ollamaProcess.on("exit", resolve)));
+  }
+  // Do not include MCP in the race; it's optional
+  const exitCode = await Promise.race(waiters);
 
   console.log(`💥 One of the processes exited. Exit code: ${exitCode}`);
   process.exit(exitCode);
