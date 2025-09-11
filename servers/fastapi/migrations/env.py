@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from logging.config import fileConfig
+import logging
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
@@ -22,6 +23,7 @@ from models.sql.template import TemplateModel  # noqa: F401
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+logger = logging.getLogger("presenton-backend")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -38,11 +40,34 @@ def _get_database_url() -> str:
     if not db_url:
         raise RuntimeError("DATABASE_URL must be set for Alembic migrations")
     # Ensure we use a sync driver for migrations
-    return (
+    sync_url = (
         db_url.replace("postgresql+asyncpg://", "postgresql://")
+        .replace("postgresql+psycopg://", "postgresql://")
         .replace("mysql+aiomysql://", "mysql://")
         .replace("sqlite+aiosqlite://", "sqlite://")
     )
+
+    # Log redacted URL (mask password)
+    try:
+        from urllib.parse import urlsplit
+
+        parsed = urlsplit(sync_url)
+        netloc = parsed.netloc
+        if "@" in netloc:
+            creds, hostpart = netloc.split("@", 1)
+            if ":" in creds:
+                user, _ = creds.split(":", 1)
+                redacted_netloc = f"{user}:***@{hostpart}"
+            else:
+                redacted_netloc = f"{creds}@{hostpart}"
+        else:
+            redacted_netloc = netloc
+        redacted_url = parsed._replace(netloc=redacted_netloc).geturl()
+        logger.info("Alembic env: sqlalchemy.url=%s", redacted_url)
+    except Exception:
+        pass
+
+    return sync_url
 
 
 def run_migrations_offline() -> None:
@@ -61,6 +86,8 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = _get_database_url()
+    # Ensure we fail fast if DB is unreachable
+    configuration["sqlalchemy.connect_args"] = {"connect_timeout": 10}
 
     connectable = engine_from_config(
         configuration,
