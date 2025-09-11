@@ -18,6 +18,10 @@ from models.sql.key_value import KeyValueSqlModel  # noqa: F401
 from models.sql.image_asset import ImageAsset  # noqa: F401
 from models.sql.presentation_layout_code import PresentationLayoutCodeModel  # noqa: F401
 from models.sql.template import TemplateModel  # noqa: F401
+from models.sql.user_profile import UserProfile  # noqa: F401
+from models.sql.user_usage import UserUsage  # noqa: F401
+from models.sql.slide_usage import SlideUsage  # noqa: F401
+from models.sql.email_domain_blacklist import EmailDomainBlacklist  # noqa: F401
 
 
 # this is the Alembic Config object, which provides
