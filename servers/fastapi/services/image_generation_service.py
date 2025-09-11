@@ -64,7 +64,7 @@ class ImageGenerationService:
                 image_url = await self.image_gen_func(image_prompt)
                 return image_url
             else:
-                # Providers generating binary (OpenAI/Gemini): upload to Supabase and return signed URL
+                # Providers generating binary (OpenAI/Gemini): upload to Supabase and return STORAGE KEY (not signed URL)
                 image_url_or_key = await self.image_gen_func(image_prompt, self.output_directory)
                 # For compatibility if the provider still writes to disk, upload from disk
                 if image_url_or_key and os.path.exists(str(image_url_or_key)):
@@ -74,9 +74,9 @@ class ImageGenerationService:
                     storage = SupabaseStorage()
                     key = build_user_key(self.user_id, "images", filename)
                     await storage.save(key, content, content_type="image/jpeg")
-                    signed_url = await storage.get_signed_url(key, expires_in=3600)
+                    # Store object key so clients can re-sign on demand
                     return ImageAsset(
-                        path=signed_url,
+                        path=key,
                         extras={
                             "prompt": prompt.prompt,
                             "theme_prompt": prompt.theme_prompt,
@@ -111,8 +111,8 @@ class ImageGenerationService:
         storage = SupabaseStorage()
         key = build_user_key(self.user_id, "images", filename)
         await storage.save(key, content, content_type="image/jpeg")
-        signed_url = await storage.get_signed_url(key, expires_in=3600)
-        return signed_url
+        # Return storage key (re-sign when serving)
+        return key
 
     async def generate_image_google(self, prompt: str, output_directory: str) -> str:
         client = genai.Client()
@@ -133,8 +133,8 @@ class ImageGenerationService:
                 storage = SupabaseStorage()
                 key = build_user_key(self.user_id, "images", filename)
                 await storage.save(key, content, content_type="image/jpeg")
-                signed_url = await storage.get_signed_url(key, expires_in=3600)
-                image_path = signed_url
+                # Keep storage key; sign when serving to clients
+                image_path = key
 
         return image_path or "/static/images/placeholder.jpg"
 
