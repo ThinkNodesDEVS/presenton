@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { useSignUp, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { getHeader } from "../app/(presentation-generator)/services/api/header";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -27,6 +28,15 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
   const { signIn, setActive: setActiveSignIn } = useSignIn();
   const router = useRouter();
 
+  const bootstrapProfile = async () => {
+    try {
+      const headers = await getHeader();
+      await fetch("/api/v1/ppt/user/bootstrap", { method: "POST", headers });
+    } catch (_) {
+      // no-op
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +53,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
         if (result?.status === "complete" && setActiveSignIn) {
           await setActiveSignIn({ session: result.createdSessionId });
+          await bootstrapProfile();
           onClose();
           router.push("/dashboard");
         }
@@ -68,6 +79,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
         if (result?.status === "complete" && setActive) {
           await setActive({ session: result.createdSessionId });
+          await bootstrapProfile();
           onClose();
           router.push("/dashboard");
         } else if (result?.status === "missing_requirements") {

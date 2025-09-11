@@ -56,6 +56,12 @@ const Header: React.FC = () => {
                 Templates
               </span>
             </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 text-deep-navy hover:text-electric-orange transition-colors duration-200"
+            >
+              <span className="text-body font-medium font-inter">Pricing</span>
+            </Link>
           </nav>
         </div>
       </div>

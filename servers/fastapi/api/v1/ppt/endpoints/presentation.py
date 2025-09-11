@@ -44,11 +44,15 @@ from utils.llm_calls.generate_slide_content import (
 from utils.process_slides import process_slide_and_fetch_assets
 from utils.randomizers import get_random_uuid
 from utils.auth_utils import validate_presentation_ownership, get_user_id_from_request
+from utils.usage import (
+    get_current_month_key,
+    get_entitlements,
+    get_or_create_usage,
+    get_user_profile,
+)
 
 
 PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
-
-
 @PRESENTATION_ROUTER.get("", response_model=PresentationWithSlides)
 async def get_presentation(
     id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
@@ -118,6 +122,20 @@ async def create_presentation(
     presentation_id = get_random_uuid()
     user_id = get_user_id_from_request(request)
 
+    # Usage enforcement
+    profile = await get_user_profile(sql_session, user_id)
+    month_key = get_current_month_key()
+    usage = await get_or_create_usage(sql_session, user_id, month_key)
+    ent = get_entitlements(profile.plan, profile.domain_type)
+
+    # Total presentations cap for free plans
+    if ent.get("presentations_total_max") is not None and usage.presentations_used >= int(ent["presentations_total_max"]):
+        raise HTTPException(402, "Presentation limit reached. Upgrade your plan to create more.")
+
+    # Slides cap for this request
+    if usage.slides_used + n_slides > int(ent["slides_monthly_max"]):
+        raise HTTPException(402, "Monthly slide limit exceeded. Upgrade your plan to get more slides.")
+
     presentation = PresentationModel(
         id=presentation_id,
         user_id=user_id,
@@ -128,6 +146,10 @@ async def create_presentation(
     )
 
     sql_session.add(presentation)
+    # increment usage on success
+    if ent.get("presentations_total_max") is not None:
+        usage.presentations_used += 1
+    usage.slides_used += n_slides
     await sql_session.commit()
 
     return presentation
@@ -171,6 +193,18 @@ async def prepare_presentation(
             continue
         if presentation_structure.slides[index] >= total_slide_layouts:
             presentation_structure.slides[index] = random_slide_index
+
+    # Usage enforcement for slide deltas
+    profile = await get_user_profile(sql_session, user_id)
+    month_key = get_current_month_key()
+    usage = await get_or_create_usage(sql_session, user_id, month_key)
+    ent = get_entitlements(profile.plan, profile.domain_type)
+
+    total_outlines = len(outlines)
+    delta = max(0, total_outlines - presentation.n_slides)
+    if delta and (usage.slides_used + delta > int(ent["slides_monthly_max"])):
+        raise HTTPException(402, "Monthly slide limit exceeded. Upgrade your plan to get more slides.")
+    usage.slides_used += delta
 
     sql_session.add(presentation)
     presentation.outlines = presentation_outline_model.model_dump(mode="json")
