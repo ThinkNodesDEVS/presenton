@@ -9,6 +9,8 @@ from utils.usage import (
     get_or_create_usage,
     get_user_profile,
 )
+from models.sql.usage_event import UsageEvent
+from sqlalchemy import select
 
 
 USER_ROUTER = APIRouter(prefix="/user", tags=["User"])
@@ -32,6 +34,24 @@ async def get_user_usage(request: Request, sql_session: AsyncSession = Depends(g
         "plan_status": profile.plan_status,
         "current_period_end": profile.current_period_end.isoformat() if profile.current_period_end else None,
     }
+@USER_ROUTER.get("/usage/events")
+async def get_usage_events(request: Request, sql_session: AsyncSession = Depends(get_async_session)):
+    user = request.state.user
+    user_id = user["user_id"]
+    month_key = get_current_month_key()
+    events = await sql_session.scalars(
+        select(UsageEvent).where(UsageEvent.user_id == user_id).where(UsageEvent.month_key == month_key)
+    )
+    return [
+        {
+            "created_at": e.created_at.isoformat(),
+            "name": e.name,
+            "description": e.description,
+            "amount": e.amount,
+            "category": e.category,
+        }
+        for e in events
+    ]
 
 
 @USER_ROUTER.post("/bootstrap")

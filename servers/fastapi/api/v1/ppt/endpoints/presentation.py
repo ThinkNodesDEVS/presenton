@@ -51,6 +51,7 @@ from utils.usage import (
     get_or_create_usage,
     get_user_profile,
 )
+from models.sql.usage_event import UsageEvent
 
 
 PRESENTATION_ROUTER = APIRouter(prefix="/presentation", tags=["Presentation"])
@@ -171,7 +172,27 @@ async def create_presentation(
     # increment usage on success
     if ent.get("presentations_total_max") is not None:
         usage.presentations_used += 1
+        sql_session.add(
+            UsageEvent(
+                user_id=user_id,
+                month_key=month_key,
+                category="presentations",
+                amount=1,
+                name="Presentation Created",
+                description=f"Created presentation {presentation_id}",
+            )
+        )
     usage.slides_used += n_slides
+    sql_session.add(
+        UsageEvent(
+            user_id=user_id,
+            month_key=month_key,
+            category="slides",
+            amount=n_slides,
+            name="Slides Allocated",
+            description=f"Allocated {n_slides} slides on create",
+        )
+    )
     await sql_session.commit()
 
     return presentation
@@ -227,6 +248,19 @@ async def prepare_presentation(
     if delta and (usage.slides_used + delta > int(ent["slides_monthly_max"])):
         raise HTTPException(402, "Monthly slide limit exceeded. Upgrade your plan to get more slides.")
     usage.slides_used += delta
+    if delta:
+        user = getattr(request.state, "user", None) or {}
+        user_id = user.get("user_id") if isinstance(user, dict) else None
+        sql_session.add(
+            UsageEvent(
+                user_id=user_id,
+                month_key=month_key,
+                category="slides",
+                amount=delta,
+                name="Slides Added",
+                description=f"Added {delta} slides during prepare",
+            )
+        )
 
     sql_session.add(presentation)
     presentation.outlines = presentation_outline_model.model_dump(mode="json")

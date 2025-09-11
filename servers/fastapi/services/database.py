@@ -25,6 +25,7 @@ from models.sql.user_profile import UserProfile
 from models.sql.user_usage import UserUsage
 from models.sql.slide_usage import SlideUsage
 from models.sql.email_domain_blacklist import EmailDomainBlacklist
+from models.sql.usage_event import UsageEvent
 from utils.db_utils import get_database_url_and_connect_args
 from utils.get_env import get_database_url_env, get_run_migrations_on_start_env
 
@@ -135,6 +136,7 @@ async def create_db_and_tables():
                     UserUsage.__table__,
                     SlideUsage.__table__,
                     EmailDomainBlacklist.__table__,
+                    UsageEvent.__table__,
                 ],
             )
         )
