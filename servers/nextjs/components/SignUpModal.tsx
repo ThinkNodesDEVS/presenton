@@ -181,7 +181,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full relative">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md relative">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -191,20 +191,20 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
         </button>
 
         {/* Modal Content */}
-        <div className="p-8">
+        <div className="p-6 md:p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent mb-2">
+            <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#066678] to-[#005264] bg-clip-text text-transparent mb-2">
               Decky
             </h2>
-            <h3 className="text-xl font-semibold text-deep-navy mb-2">
+            <h3 className="text-lg md:text-xl font-semibold text-deep-navy mb-2">
               {isLogin ? "Welcome back!" : "Get started for free"}
             </h3>
           </div>
 
           {/* Work email incentive */}
           {!isLogin && (
-            <div className="mb-4 text-center text-md text-green-900">
+            <div className="mb-4 text-center text-sm md:text-base text-green-900">
               Get access to  10 more slides if you sign in with a work email.
             </div>
           )}
@@ -247,7 +247,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                     name="verificationCode"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-center text-lg font-mono"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all text-center text-lg font-mono"
                     placeholder="000000"
                     maxLength={6}
                     required
@@ -257,7 +257,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
               <button
                 type="submit"
                   disabled={isSubmitting || verificationCode.length !== 6}
-                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 {isSubmitting ? (
                   <div className="flex items-center justify-center gap-2">
@@ -303,7 +303,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                    className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                     placeholder="Enter your full name"
                     required={!isLogin}
                   />
@@ -330,7 +330,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                   placeholder="Enter your email"
                   required
                 />
@@ -356,7 +356,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
                   placeholder="Create a secure password"
                   required
                   minLength={6}
@@ -368,7 +368,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full bg-gradient-to-r from-[#066678] to-[#005264] text-white py-2.5 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg hover:scale-[1.02] hover:shadow-teal-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center gap-2">
@@ -397,7 +397,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
               type="button"
               onClick={handleGoogleAuth}
               disabled={isSsoLoading}
-              className="w-full border border-gray-300 text-deep-navy py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-sm hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+              className="w-full border border-gray-300 text-deep-navy py-2.5 rounded-lg font-semibold transition-all duration-200 hover:shadow-sm hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
                 <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12 s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C33.1,6.053,28.805,4,24,4C12.955,4,4,12.955,4,24 s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
