@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BillingApi } from "@/app/(presentation-generator)/services/api/billing";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import Header from "@/components/Header";
+import DashboardHeader from "@/app/(presentation-generator)/dashboard/components/Header";
 
 export default function PricingPage() {
   const [interval, setInterval] = useState<"month" | "year">("month");
@@ -25,7 +25,7 @@ export default function PricingPage() {
 
   return (
     <div className="relative min-h-screen bg-[#E9E8F8]">
-      <Header />
+      <DashboardHeader />
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div className="absolute -top-24 left-1/2 h-[480px] w-[960px] -translate-x-1/2 rounded-full bg-gradient-to-r from-[#9FE7F1]/40 via-[#E6FAFD]/30 to-transparent blur-3xl" />
         <div className="absolute -bottom-24 right-1/2 h-[420px] w-[820px] translate-x-1/2 rounded-full bg-gradient-to-tr from-[#D4F2F7]/50 via-[#EAFBFF]/30 to-transparent blur-3xl" />
@@ -34,7 +34,7 @@ export default function PricingPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-4 py-14">
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <h1 className="text-4xl font-bold text-deep-navy md:text-5xl">Simple, transparent pricing</h1>
-          <p className="mt-3 text-sm text-medium-gray">Choose the plan that fits your team's presentation workflow.</p>
+          <p className="mt-3 text-md text-medium-gray">Choose the plan that fits your team's presentation workflow.</p>
         </div>
 
         <div className="mx-auto mb-10 flex w-full max-w-md items-center justify-center rounded-full bg-white p-1 shadow-sm ring-1 ring-deep-navy/5">
@@ -93,7 +93,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <p className="mx-auto mt-10 max-w-3xl text-center text-xs text-medium-gray">
+        <p className="mx-auto mt-10 max-w-3xl text-center text-md text-medium-gray">
           Free: 2 presentations total; 5 slides/month (personal email) or 10 slides/month (work email).
         </p>
       </div>

@@ -200,11 +200,6 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
             <h3 className="text-xl font-semibold text-deep-navy mb-2">
               {isLogin ? "Welcome back!" : "Get started for free"}
             </h3>
-            <p className="text-medium-gray">
-              {isLogin
-                ? "Sign in to continue creating amazing presentations"
-                : "Create your account and start building impressive presentations"}
-            </p>
           </div>
 
           {/* Work email incentive */}
@@ -435,7 +430,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
           </div>
 
           {/* Terms */}
-          {!isLogin && (
+          {/* {!isLogin && (
             <div className="mt-4 text-center">
               <p className="text-xs text-medium-gray">
                 By creating an account, you agree to our{" "}
@@ -454,7 +449,7 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
                 </a>
               </p>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>
