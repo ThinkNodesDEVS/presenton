@@ -6,6 +6,7 @@ import { clearPresentationData } from "@/store/slices/presentationGeneration";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { LayoutGroup, LoadingState, TABS } from "../types/index";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import UpgradeModal from "@/components/UpgradeModal";
 
 const DEFAULT_LOADING_STATE: LoadingState = {
   message: "",
@@ -23,6 +24,7 @@ export const usePresentationGeneration = (
   const dispatch = useDispatch();
   const router = useRouter();
   const [loadingState, setLoadingState] = useState<LoadingState>(DEFAULT_LOADING_STATE);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const validateInputs = useCallback(() => {
     if (!outlines || outlines.length === 0) {
@@ -90,13 +92,17 @@ export const usePresentationGeneration = (
       }
     } catch (error: any) {
       console.error('Error In Deck Generation(prepare).', error);
-      toast.error("Generation Error", {
-        description: error.message || "Error In Deck Generation(prepare).",
-      });
+      if (error?.code === "SLIDE_LIMIT") {
+        setShowUpgrade(true);
+      } else {
+        toast.error("Generation Error", {
+          description: error.message || "Error In Deck Generation(prepare).",
+        });
+      }
     } finally {
       setLoadingState(DEFAULT_LOADING_STATE);
     }
   }, [validateInputs, prepareLayoutData, presentationId, outlines, dispatch, router]);
 
-  return { loadingState, handleSubmit };
+  return { loadingState, handleSubmit, showUpgrade, setShowUpgrade, UpgradeModal };
 }; 

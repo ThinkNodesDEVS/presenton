@@ -23,6 +23,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { RootState } from "@/store/store";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import UpgradeModal from "@/components/UpgradeModal";
 import MarkdownRenderer from "./MarkdownRenderer";
 import { getIconFromFile } from "../../utils/others";
 import { ChevronRight, PanelRightOpen, X } from "lucide-react";
@@ -134,6 +135,8 @@ const DocumentsPreviewPage: React.FC = () => {
     }
   };
 
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
   const handleCreatePresentation = async () => {
     try {
       setShowLoading({
@@ -161,9 +164,13 @@ const DocumentsPreviewPage: React.FC = () => {
       router.replace("/outline");
     } catch (error: any) {
       console.error("Error in radar presentation creation:", error);
-      toast.error("Error", {
-        description: error.message || "Error in radar presentation creation.",
-      });
+      if (error?.code === "SLIDE_LIMIT") {
+        setShowUpgrade(true);
+      } else {
+        toast.error("Error", {
+          description: error.message || "Error in radar presentation creation.",
+        });
+      }
       setShowLoading({
         message: "Error in radar presentation creation.",
         show: true,
@@ -259,6 +266,7 @@ const DocumentsPreviewPage: React.FC = () => {
 
   return (
     <div className={`bg-white/90 min-h-screen flex flex-col w-full`}>
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
       <OverlayLoader
         show={showLoading.show}
         text={showLoading.message}

@@ -75,7 +75,18 @@ export class PresentationGenerationApi {
           cache: "no-cache",
         }
       );
-      
+      // Intercept slide-limit message to allow UI to show an upgrade modal
+      if (!response.ok) {
+        try {
+          const data = await response.json();
+          const msg = (data?.detail || data?.message || "").toLowerCase();
+          if (msg.includes("slide limit")) {
+            const err: any = new Error(data?.detail || "Monthly slide limit exceeded");
+            err.code = "SLIDE_LIMIT";
+            throw err;
+          }
+        } catch {}
+      }
       return await ApiResponseHandler.handleResponse(response, "Failed to create presentation");
     } catch (error) {
       console.error("error in presentation creation", error);

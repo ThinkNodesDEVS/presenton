@@ -26,7 +26,7 @@ const OutlinePage: React.FC = () => {
   // Custom hooks
   const streamState = useOutlineStreaming(presentation_id);
   const { handleDragEnd, handleAddSlide } = useOutlineManagement(outlines);
-  const { loadingState, handleSubmit } = usePresentationGeneration(
+  const { loadingState, handleSubmit, showUpgrade, setShowUpgrade, UpgradeModal } = usePresentationGeneration(
     presentation_id,
     outlines,
     selectedLayoutGroup,
@@ -39,6 +39,7 @@ const OutlinePage: React.FC = () => {
 
   return (
     <div className="min-h-[calc(100vh-72px)] h-full">
+      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
       <OverlayLoader
         show={loadingState.isLoading}
         text={loadingState.message}
