@@ -1,0 +1,134 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Loader2, RefreshCw } from "lucide-react";
+
+type Usage = {
+  slides_used: number;
+  slides_monthly_max: number;
+  presentations_used: number;
+  presentations_total_max: number | null;
+  plan: string;
+  plan_status: string;
+  current_period_end?: string;
+};
+
+export default function AccountOverview() {
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchUsage = async () => {
+    try {
+      setLoading(true);
+      const headers = await (await import("@/app/(presentation-generator)/services/api/header")).getHeader();
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/ppt/user/usage`, { headers, cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setUsage(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsage();
+  }, []);
+
+  const slidePct = useMemo(() => {
+    if (!usage) return 0;
+    if (usage.slides_monthly_max === 0) return 0;
+    return Math.min(100, Math.round((usage.slides_used / usage.slides_monthly_max) * 100));
+  }, [usage]);
+
+  const presPct = useMemo(() => {
+    if (!usage) return 0;
+    const max = usage.presentations_total_max ?? Infinity;
+    if (!isFinite(max)) return 0;
+    if (max === 0) return 0;
+    return Math.min(100, Math.round((usage.presentations_used / max) * 100));
+  }, [usage]);
+
+  return (
+    <div className="space-y-6">
+      {/* Credits/Usage Card */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-deep-navy">Credits</h2>
+            <p className="text-sm text-slate-600">Check your balance and recent usage.</p>
+          </div>
+          <button
+            onClick={fetchUsage}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-deep-navy hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Balance */}
+          <div className="rounded-lg border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4">
+            <div className="text-sm text-slate-500">Current balance</div>
+            <div className="mt-1 text-4xl font-bold text-deep-navy">{usage ? usage.slides_monthly_max - usage.slides_used : "-"}</div>
+            <div className="text-xs text-slate-500">Slides available</div>
+          </div>
+
+          {/* Upgrade Prompt */}
+          <div className="rounded-lg border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-4">
+            <div className="text-sm font-medium text-deep-navy">Need more credits?</div>
+            <div className="mt-1 text-xs text-slate-600">Upgrade to a higher plan for more credits</div>
+            <Link
+              href="/pricing"
+              className="mt-3 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-[#066678] to-[#005264] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Upgrade Plan
+            </Link>
+            <div className="mt-2 text-[11px] text-slate-500">Get more credits, immediately.</div>
+          </div>
+        </div>
+
+        {/* Usage Bars */}
+        <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
+          <div className="grid grid-cols-4 bg-slate-50/60 px-4 py-3 text-xs font-medium text-slate-600">
+            <div>Date</div>
+            <div>Name</div>
+            <div>Description</div>
+            <div className="text-right">Amount</div>
+          </div>
+          <div className="p-4 text-sm text-slate-600">
+            <div className="mb-3">Slides this month</div>
+            <div className="h-2 w-full rounded-full bg-slate-100">
+              <div className="h-2 rounded-full bg-[#066678]" style={{ width: `${slidePct}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-slate-500">{usage ? `${usage.slides_used} / ${usage.slides_monthly_max}` : "-"}</div>
+
+            <div className="mt-5 mb-3">Presentations total</div>
+            <div className="h-2 w-full rounded-full bg-slate-100">
+              <div className="h-2 rounded-full bg-[#0B4858]" style={{ width: `${presPct}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-slate-500">{usage ? `${usage.presentations_used} / ${usage.presentations_total_max ?? "∞"}` : "-"}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subscription Card */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-deep-navy">Subscription</h2>
+        <p className="text-sm text-slate-600">You {usage && usage.plan !== "free" ? "have" : "don't have"} an active subscription.</p>
+        <div className="mt-4">
+          <Link
+            href="/pricing"
+            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-deep-navy hover:bg-slate-50"
+          >
+            View pricing
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
