@@ -51,7 +51,7 @@ class SupabaseStorage(StorageService):
         # Return a public path (not necessarily public). Consumers should request a signed URL.
         return key
 
-    async def get_signed_url(self, key: str, expires_in: int = 3600) -> str:
+    async def get_signed_url(self, key: str, expires_in: int = 36000) -> str:
         # Create a signed URL for private bucket
         # Supabase REST: POST /object/sign/{bucket}
         sign_url = f"{self.base_url}/storage/v1/object/sign/{self.bucket}"
@@ -67,6 +67,27 @@ class SupabaseStorage(StorageService):
                     raise RuntimeError("Supabase sign returned invalid response")
                 # API may return signedURL or signedUrl casing depending on version
                 signed = data[0].get("signedURL") or data[0].get("signedUrl")
+                # Normalize returned value to avoid double prefixing
+                # Possible formats:
+                # 1) "users/.../file.jpg?token=..." (path only)
+                # 2) "object/sign/<bucket>/users/.../file.jpg?token=..." (includes object/sign)
+                # 3) "storage/v1/object/sign/<bucket>/users/.../file.jpg?token=..." (full path)
+                # 4) Full URL (rare)
+                if signed.startswith("http://") or signed.startswith("https://"):
+                    return signed
+
+                # Strip leading slash for consistent joins
+                signed = signed.lstrip("/")
+
+                if signed.startswith("storage/v1/object/sign/"):
+                    # Already a storage-relative path
+                    return f"{self.base_url}/{signed}"
+                if signed.startswith("object/sign/"):
+                    # Missing the storage/v1 prefix
+                    return f"{self.base_url}/storage/v1/{signed}"
+
+                # Otherwise assume it's a bucket-relative object path
+                
                 return f"{self.base_url}/storage/v1/object/sign/{self.bucket}/{signed}"
 
     async def delete(self, key: str) -> None:
