@@ -27,6 +27,7 @@ import Wrapper from "@/components/Wrapper";
 import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { getHeader } from "../../services/api/header";
+import Link from "next/link";
 
 // Types for loading state
 interface LoadingState {
@@ -50,6 +51,7 @@ const UploadPage = () => {
     prompt: "",
   });
   const [remainingSlides, setRemainingSlides] = useState<number | null>(null);
+  const [remainingPresentations, setRemainingPresentations] = useState<number | null>(null);
 
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: false,
@@ -103,6 +105,9 @@ const UploadPage = () => {
             setConfig((prev) => ({ ...prev, slides: String(remaining) }));
           }
         }
+        const maxPres = data?.presentations_total_max;
+        const presRemaining = maxPres == null ? null : Math.max(0, (maxPres || 0) - (data?.presentations_used ?? 0));
+        setRemainingPresentations(presRemaining);
       } catch (_) {
         // ignore if backend unavailable
       }
@@ -179,6 +184,14 @@ const UploadPage = () => {
 
     // Use the first available layout group for direct generation
     trackEvent(MixpanelEvent.Upload_Create_Presentation_API_Call);
+    const noSlidesLeft = remainingSlides != null && remainingSlides <= 0;
+    const noPresentationsLeft = remainingPresentations !== null && remainingPresentations <= 0;
+    if (noSlidesLeft || noPresentationsLeft) {
+      setLoadingState({ isLoading: false, message: "", duration: 0, showProgress: false });
+      const reason = noSlidesLeft ? "No slides left this month" : "Presentation limit reached";
+      toast.error("Upgrade required", { description: `${reason}. Please upgrade to continue.` });
+      return;
+    }
     const requested = config?.slides ? parseInt(config.slides) : 0;
     const capped = remainingSlides != null ? Math.max(1, Math.min(requested || 1, remainingSlides)) : (requested || 1);
     const createResponse = await PresentationGenerationApi.createPresentation({
@@ -240,14 +253,24 @@ const UploadPage = () => {
         onFilesChange={setFiles}
         data-testid="file-upload-input"
       />
-      <Button
-        onClick={handleGeneratePresentation}
-        className="w-full rounded-[32px] flex items-center justify-center py-6 bg-[#5141e5] text-white font-instrument_sans font-semibold text-xl hover:bg-[#5141e5]/80 transition-colors duration-300"
-        data-testid="next-button"
-      >
-        <span>Next</span>
-        <ChevronRight className="!w-6 !h-6" />
-      </Button>
+      <div className="space-y-2">
+        <Button
+          onClick={handleGeneratePresentation}
+          className="w-full rounded-[32px] flex items-center justify-center py-6 bg-[#5141e5] text-white font-instrument_sans font-semibold text-xl hover:bg-[#5141e5]/80 transition-colors duration-300 disabled:opacity-60 disabled:hover:bg-[#5141e5]"
+          data-testid="next-button"
+          disabled={(remainingSlides != null && remainingSlides <= 0) || (remainingPresentations !== null && remainingPresentations <= 0)}
+        >
+          <span>Next</span>
+          <ChevronRight className="!w-6 !h-6" />
+        </Button>
+        {((remainingSlides != null && remainingSlides <= 0) || (remainingPresentations !== null && remainingPresentations <= 0)) && (
+          <div className="text-center text-sm text-slate-600">
+            {remainingSlides != null && remainingSlides <= 0 && (<span>You have no slides left this month. </span>)}
+            {remainingPresentations !== null && remainingPresentations <= 0 && (<span>Presentation limit reached. </span>)}
+            <Link href="/pricing" className="text-indigo-600 font-medium hover:underline">Upgrade to continue</Link>
+          </div>
+        )}
+      </div>
     </Wrapper>
   );
 };
