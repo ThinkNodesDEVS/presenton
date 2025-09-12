@@ -10,7 +10,7 @@
  */
 
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { clearOutlines, setPresentationId } from "@/store/slices/presentationGeneration";
@@ -26,6 +26,7 @@ import { OverlayLoader } from "@/components/ui/overlay-loader";
 import Wrapper from "@/components/Wrapper";
 import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { getHeader } from "../../services/api/header";
 
 // Types for loading state
 interface LoadingState {
@@ -44,10 +45,11 @@ const UploadPage = () => {
   // State management
   const [files, setFiles] = useState<File[]>([]);
   const [config, setConfig] = useState<PresentationConfig>({
-    slides: "8",
+    slides: "5",
     language: LanguageType.English,
     prompt: "",
   });
+  const [remainingSlides, setRemainingSlides] = useState<number | null>(null);
 
   const [loadingState, setLoadingState] = useState<LoadingState>({
     isLoading: false,
@@ -82,6 +84,32 @@ const UploadPage = () => {
     }
     return true;
   };
+
+  // Fetch current usage to cap slides client-side
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const headers = await getHeader();
+        const base = (process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "")) || (typeof window !== "undefined" ? window.location.origin : "");
+        const res = await fetch(`${base}/api/v1/ppt/user/usage`, { headers, cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const remaining = Math.max(0, (data?.slides_monthly_max ?? 0) - (data?.slides_used ?? 0));
+        if (Number.isFinite(remaining)) {
+          setRemainingSlides(remaining);
+          // If current selection exceeds remaining, clamp it
+          const current = parseInt(config.slides || "0", 10) || 0;
+          if (remaining > 0 && current > remaining) {
+            setConfig((prev) => ({ ...prev, slides: String(remaining) }));
+          }
+        }
+      } catch (_) {
+        // ignore if backend unavailable
+      }
+    };
+    fetchUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Handles the presentation generation process
@@ -151,9 +179,11 @@ const UploadPage = () => {
 
     // Use the first available layout group for direct generation
     trackEvent(MixpanelEvent.Upload_Create_Presentation_API_Call);
+    const requested = config?.slides ? parseInt(config.slides) : 0;
+    const capped = remainingSlides != null ? Math.max(1, Math.min(requested || 1, remainingSlides)) : (requested || 1);
     const createResponse = await PresentationGenerationApi.createPresentation({
       prompt: config?.prompt ?? "",
-      n_slides: config?.slides ? parseInt(config.slides) : null,
+      n_slides: capped,
       file_paths: [],
       language: config?.language ?? "",
     });
@@ -194,6 +224,7 @@ const UploadPage = () => {
         <ConfigurationSelects
           config={config}
           onConfigChange={handleConfigChange}
+          remainingSlides={remainingSlides}
         />
       </div>
 

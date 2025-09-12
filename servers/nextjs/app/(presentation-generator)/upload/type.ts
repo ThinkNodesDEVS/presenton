@@ -119,7 +119,7 @@ export enum LanguageType {
 }
 
 export interface PresentationConfig {
-  slides: "5" | "8" | "10" | "12" | "15" | null;
+  slides: string | null;
   language: LanguageType | null;
   prompt: string;
 }

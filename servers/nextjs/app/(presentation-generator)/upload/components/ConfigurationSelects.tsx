@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LanguageType, PresentationConfig } from "../type";
+import Link from "next/link";
 import { useState } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import { Input } from "@/components/ui/input";
 interface ConfigurationSelectsProps {
   config: PresentationConfig;
   onConfigChange: (key: keyof PresentationConfig, value: string) => void;
+  remainingSlides?: number | null;
 }
 
 type SlideOption = "5" | "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15" | "16" | "17" | "18" | "19" | "20";
@@ -42,7 +44,8 @@ const SLIDE_OPTIONS: SlideOption[] = ["5", "8", "9", "10", "11", "12", "13", "14
 const SlideCountSelect: React.FC<{
   value: string | null;
   onValueChange: (value: string) => void;
-}> = ({ value, onValueChange }) => {
+  remainingSlides?: number | null;
+}> = ({ value, onValueChange, remainingSlides }) => {
   const [customInput, setCustomInput] = useState(
     value && !SLIDE_OPTIONS.includes(value as SlideOption) ? value : ""
   );
@@ -60,6 +63,12 @@ const SlideCountSelect: React.FC<{
     if (sanitized && Number(sanitized) > 0) {
       onValueChange(sanitized);
     }
+  };
+
+  const canSelect = (opt: string) => {
+    if (remainingSlides == null) return true;
+    const num = Number(opt);
+    return Number.isFinite(num) && num <= remainingSlides;
   };
 
   return (
@@ -88,7 +97,17 @@ const SlideCountSelect: React.FC<{
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => {
                 const next = sanitizeToPositiveInteger(e.target.value);
-                setCustomInput(next);
+                // If remainingSlides known, clamp custom input visually
+                if (remainingSlides != null && next) {
+                  const asNum = Number(next);
+                  if (Number.isFinite(asNum) && asNum > remainingSlides) {
+                    setCustomInput(String(remainingSlides));
+                  } else {
+                    setCustomInput(next);
+                  }
+                } else {
+                  setCustomInput(next);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -102,6 +121,13 @@ const SlideCountSelect: React.FC<{
             />
             <span className="text-sm font-medium">slides</span>
           </div>
+          {typeof remainingSlides === "number" && (
+            <div className="mt-1 text-[11px] text-slate-500">
+              {remainingSlides} left this month. {remainingSlides < 20 && (
+                <Link href="/pricing" className="text-indigo-600 hover:underline">Upgrade</Link>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Hidden item to allow SelectValue to render custom selection */}
@@ -111,16 +137,20 @@ const SlideCountSelect: React.FC<{
           </SelectItem>
         )}
 
-        {SLIDE_OPTIONS.map((option) => (
-          <SelectItem
-            key={option}
-            value={option}
-            className="font-instrument_sans text-sm font-medium"
-            role="option"
-          >
-            {option} slides
-          </SelectItem>
-        ))}
+        {SLIDE_OPTIONS.map((option) => {
+          const disabled = !canSelect(option);
+          return (
+            <SelectItem
+              key={option}
+              value={option}
+              className={`font-instrument_sans text-sm font-medium ${disabled ? "opacity-40 pointer-events-none" : ""}`}
+              role="option"
+              disabled={disabled}
+            >
+              {option} slides {disabled && <span className="ml-1 text-[10px] text-slate-500">(Upgrade)</span>}
+            </SelectItem>
+          );
+        })}
       </SelectContent>
     </Select>
   );
@@ -190,6 +220,7 @@ const LanguageSelect: React.FC<{
 export function ConfigurationSelects({
   config,
   onConfigChange,
+  remainingSlides,
 }: ConfigurationSelectsProps) {
   const [openLanguage, setOpenLanguage] = useState(false);
 
@@ -198,6 +229,7 @@ export function ConfigurationSelects({
       <SlideCountSelect
         value={config.slides}
         onValueChange={(value) => onConfigChange("slides", value)}
+        remainingSlides={remainingSlides}
       />
       <LanguageSelect
         value={config.language}
