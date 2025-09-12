@@ -30,6 +30,7 @@ export const useSlideProcessing = (
         const htmlResponse = await fetch("/api/v1/ppt/slide-to-html/", {
           method: "POST",
           headers: {
+            ...(await (await import("@/app/(presentation-generator)/services/api/header")).getHeader()),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -135,6 +136,7 @@ export const useSlideProcessing = (
         formData.append("pdf_file", selectedFile);
         const pdfResponse = await fetch("/api/v1/ppt/pdf-slides/process", {
           method: "POST",
+          headers: await (await import("@/app/(presentation-generator)/services/api/header")).getHeaderForFormData(),
           body: formData,
         });
         slidesResponseData = await ApiResponseHandler.handleResponse(
@@ -145,6 +147,7 @@ export const useSlideProcessing = (
         formData.append("pptx_file", selectedFile);
         const pptxResponse = await fetch("/api/v1/ppt/pptx-slides/process", {
           method: "POST",
+          headers: await (await import("@/app/(presentation-generator)/services/api/header")).getHeaderForFormData(),
           body: formData,
         });
         slidesResponseData = await ApiResponseHandler.handleResponse(
