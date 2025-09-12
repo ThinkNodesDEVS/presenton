@@ -13,6 +13,7 @@ import Image from "next/image";
 import { RootState } from "@/store/store";
 import { useSelector } from "react-redux";
 import { useUser } from "@clerk/nextjs";
+import UsageDropdown from "./UsageDropdown";
 
 const Header = () => {
   const pathname = usePathname();
@@ -89,20 +90,27 @@ const Header = () => {
               <span className="text-sm font-medium font-inter">Templates</span>
             </Link>
             <HeaderNav />
+            <UsageDropdown showLabel triggerClassName="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none" />
           </div>
 
-          {/* Mobile Hamburger Menu */}
-          <button
-            onClick={toggleMobileMenu}
-            className="md:hidden p-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
-            aria-label="Toggle mobile menu"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          {/* Mobile: Usage + Hamburger */}
+          <div className="md:hidden flex items-center gap-1">
+            <UsageDropdown
+              showLabel
+              triggerClassName="flex items-center gap-2 px-3 py-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
+            />
+            <button
+              onClick={toggleMobileMenu}
+              className="p-2 text-white hover:bg-primary/80 rounded-md transition-colors outline-none"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </div>
       </Wrapper>
 
