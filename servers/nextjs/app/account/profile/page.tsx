@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import React, { useEffect, useRef, useState } from "react";
+import { useUser, ClerkLoaded, ClerkLoading } from "@clerk/nextjs";
 import { User2, Pencil, Mail, IdCard, CheckCircle2, ShieldCheck } from "lucide-react";
 
 export default function AccountProfile() {
@@ -9,6 +9,8 @@ export default function AccountProfile() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -35,9 +37,39 @@ export default function AccountProfile() {
     }
   };
 
-  if (!isLoaded) {
-    return <div className="bg-white rounded-lg shadow p-6">Loading...</div>;
-  }
+  const triggerFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onAvatarSelected: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const selectedFile = e.target.files?.[0];
+    try {
+      setMessage("");
+      if (!user) return;
+      if (!selectedFile) return;
+      const validTypes = ["image/png", "image/jpeg", "image/webp"];
+      if (!validTypes.includes(selectedFile.type)) {
+        setMessage("Please upload a PNG, JPG, or WEBP image.");
+        return;
+      }
+      const maxBytes = 5 * 1024 * 1024;
+      if (selectedFile.size > maxBytes) {
+        setMessage("Image must be 5MB or smaller.");
+        return;
+      }
+      setIsUploading(true);
+      await user.setProfileImage({ file: selectedFile });
+      await user.reload();
+      setMessage("Avatar updated");
+    } catch (err: any) {
+      setMessage(err?.errors?.[0]?.message || "Failed to update avatar");
+    } finally {
+      setIsUploading(false);
+      if (e.target) {
+        e.target.value = "";
+      }
+    }
+  };
 
   const initials = (() => {
     const name = (fullName || [user?.firstName, user?.lastName].filter(Boolean).join(" ")).trim();
@@ -52,6 +84,10 @@ export default function AccountProfile() {
 
   return (
     <div className="space-y-6">
+      <ClerkLoading>
+        <div className="bg-white rounded-lg shadow p-6">Loading...</div>
+      </ClerkLoading>
+      <ClerkLoaded>
       {/* Profile Card */}
       <div className="rounded-2xl shadow border border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 p-6">
         <div className="flex items-start justify-between">
@@ -84,17 +120,44 @@ export default function AccountProfile() {
 
         <div className="mt-6 grid grid-cols-12 gap-6 items-center">
           <div className="col-span-12 sm:col-span-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={onAvatarSelected}
+            />
             {user?.imageUrl ? (
-              <div className="w-28 h-28 rounded-full overflow-hidden ring-2 ring-indigo-200">
-                <img
-                  src={user.imageUrl}
-                  alt="avatar"
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex flex-col items-start gap-3">
+                <div className="w-28 h-28 rounded-full overflow-hidden ring-2 ring-indigo-200">
+                  <img
+                    src={user.imageUrl}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={triggerFilePicker}
+                  disabled={isUploading}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-white/70 disabled:opacity-50"
+                >
+                  {isUploading ? "Uploading..." : "Change"}
+                </button>
               </div>
             ) : (
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-slate-200 to-slate-100 flex items-center justify-center text-slate-700 text-2xl font-semibold select-none ring-2 ring-indigo-100">
-                {initials}
+              <div className="flex flex-col items-start gap-3">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-slate-200 to-slate-100 flex items-center justify-center text-slate-700 text-2xl font-semibold select-none ring-2 ring-indigo-100">
+                  {initials}
+                </div>
+                <button
+                  type="button"
+                  onClick={triggerFilePicker}
+                  disabled={isUploading}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-slate-300 text-sm hover:bg-white/70 disabled:opacity-50"
+                >
+                  {isUploading ? "Uploading..." : "Upload"}
+                </button>
               </div>
             )}
           </div>
@@ -157,6 +220,7 @@ export default function AccountProfile() {
         </div>
         {message && <p className="mt-3 text-sm text-slate-600">{message}</p>}
       </div>
+      </ClerkLoaded>
     </div>
   );
 }

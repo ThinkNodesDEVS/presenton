@@ -3,6 +3,7 @@ import Link from "next/link";
 import { User, CreditCard, LogOut, LayoutDashboard } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import Header from "@/app/(presentation-generator)/dashboard/components/Header";
+import SidebarNav from "./SidebarNav";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,26 +16,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         </div>
         <div className="grid grid-cols-12 gap-6">
           <aside className="col-span-12 md:col-span-3">
-            <nav className="bg-white rounded-lg shadow p-4 space-y-1">
-              <Link href="/account/overview" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Overview</span>
-              </Link>
-              <Link href="/account/profile" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50">
-                <User className="w-4 h-4" />
-                <span>Profile</span>
-              </Link>
-              <Link href="/account/subscription" className="flex items-center gap-2 px-3 py-2 rounded hover:bg-slate-50">
-                <CreditCard className="w-4 h-4" />
-                <span>Subscription</span>
-              </Link>
-              <SignOutButton signOutOptions={{ redirectUrl: "/" }}>
-                <button className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50 text-red-600">
-                  <LogOut className="w-4 h-4 text-red-600" />
-                  <span>Logout</span>
-                </button>
-              </SignOutButton>
-            </nav>
+            <SidebarNav />
           </aside>
           <main className="col-span-12 md:col-span-9">{children}</main>
         </div>

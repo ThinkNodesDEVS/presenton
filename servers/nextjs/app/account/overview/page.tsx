@@ -26,7 +26,14 @@ export default function AccountOverview() {
       setError(null);
       const headers = await (await import("@/app/(presentation-generator)/services/api/header")).getHeader();
       const base = (process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "")) || (typeof window !== "undefined" ? window.location.origin : "");
-      await fetch(`${base}/api/v1/ppt/user/bootstrap`, { method: "POST", headers });
+      // Best-effort bootstrap; ignore if backend is not running
+      try {
+        const boot = await fetch(`${base}/api/v1/ppt/user/bootstrap`, { method: "POST", headers });
+        if (!boot.ok) {
+          // If backend is missing (404/502/etc), we just skip showing its raw body
+        }
+      } catch (_) {}
+
       const res = await fetch(`${base}/api/v1/ppt/user/usage`, { headers, cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
@@ -37,8 +44,12 @@ export default function AccountOverview() {
           setEvents(rows);
         }
       } else {
-        const text = await res.text();
-        setError(text || `Failed to load usage (${res.status})`);
+        const contentType = res.headers.get("content-type") || "";
+        if (res.status === 404 || contentType.includes("text/html")) {
+          setError("Backend API is unavailable (404). Start the API server to see usage.");
+        } else {
+          setError(`Failed to load usage (${res.status})`);
+        }
       }
     } finally {
       setLoading(false);
