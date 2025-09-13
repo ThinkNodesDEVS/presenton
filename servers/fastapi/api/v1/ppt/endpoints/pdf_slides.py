@@ -68,7 +68,8 @@ async def process_pdf_slides(
             print(f"Generated {len(screenshot_paths)} PDF screenshots")
             
             # Upload screenshots to Supabase Storage and generate URLs
-            storage = SupabaseStorage()
+            from services.storage import get_storage
+            storage = get_storage()
             user = getattr(request.state, "user", None) or {}
             user_id = user.get("user_id") if isinstance(user, dict) else "public"
             presentation_id = get_random_uuid()

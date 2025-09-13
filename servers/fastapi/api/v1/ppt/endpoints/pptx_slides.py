@@ -308,7 +308,8 @@ async def process_pptx_slides(
             print(f"Font analysis completed: {len(font_analysis.internally_supported_fonts)} supported, {len(font_analysis.not_supported_fonts)} not supported")
             
             # Upload screenshots to Supabase Storage and generate signed URLs
-            storage = SupabaseStorage()
+            from services.storage import get_storage
+            storage = get_storage()
             user = getattr(request.state, "user", None) or {}
             user_id = user.get("user_id") if isinstance(user, dict) else "public"
             presentation_id = get_random_uuid()

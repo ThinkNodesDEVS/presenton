@@ -9,7 +9,7 @@ from models.pptx_models import PptxPresentationModel
 from models.presentation_and_path import PresentationAndPath
 from services.pptx_presentation_creator import PptxPresentationCreator
 from services import TEMP_FILE_SERVICE
-from services.storage import SupabaseStorage, build_user_key
+from services.storage import get_storage, build_user_key
 from utils.randomizers import get_random_uuid
 
 
@@ -49,7 +49,7 @@ async def export_presentation(
         with open(temp_path, "rb") as f:
             content = f.read()
 
-        storage = SupabaseStorage()
+        storage = get_storage()
         key = build_user_key(user_id or "public", "exports", temp_filename)
         await storage.save(key, content, content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
         signed_url = await storage.get_signed_url(key, expires_in=3600)

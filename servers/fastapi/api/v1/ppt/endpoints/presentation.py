@@ -32,7 +32,7 @@ from models.sse_response import SSECompleteResponse, SSEResponse
 
 from services.database import get_async_session
 from services import TEMP_FILE_SERVICE
-from services.storage import SupabaseStorage
+from services.storage import get_storage
 from models.sql.presentation import PresentationModel
 from services.pptx_presentation_creator import PptxPresentationCreator
 from utils.asset_directory_utils import get_exports_directory, get_images_directory
@@ -68,7 +68,7 @@ async def get_presentation(
         .order_by(SlideModel.index)
     )
     # Re-sign image URLs for any stored storage keys
-    storage = SupabaseStorage()
+    storage = get_storage()
     for slide in slides:
         content = slide.content or {}
         # Walk dict and re-sign keys for __image_url__ if value looks like a storage key (no http)

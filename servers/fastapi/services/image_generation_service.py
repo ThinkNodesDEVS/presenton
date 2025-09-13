@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
 from utils.download_helpers import download_file
-from services.storage import SupabaseStorage, build_user_key
+from services.storage import get_storage, build_user_key
 from services import TEMP_FILE_SERVICE
 from utils.get_env import get_pexels_api_key_env
 from utils.get_env import get_pixabay_api_key_env
@@ -71,7 +71,7 @@ class ImageGenerationService:
                     with open(str(image_url_or_key), "rb") as f:
                         content = f.read()
                     filename = os.path.basename(str(image_url_or_key))
-                    storage = SupabaseStorage()
+                    storage = get_storage()
                     key = build_user_key(self.user_id, "images", filename)
                     await storage.save(key, content, content_type="image/jpeg")
                     # Store object key so clients can re-sign on demand
@@ -108,7 +108,7 @@ class ImageGenerationService:
                     raise Exception(f"Failed to fetch generated image: {resp.status}")
                 content = await resp.read()
         filename = f"{get_random_uuid()}.jpg"
-        storage = SupabaseStorage()
+        storage = get_storage()
         key = build_user_key(self.user_id, "images", filename)
         await storage.save(key, content, content_type="image/jpeg")
         # Return storage key (re-sign when serving)
@@ -130,7 +130,7 @@ class ImageGenerationService:
             elif part.inline_data is not None:
                 content = part.inline_data.data
                 filename = f"{get_random_uuid()}.jpg"
-                storage = SupabaseStorage()
+                storage = get_storage()
                 key = build_user_key(self.user_id, "images", filename)
                 await storage.save(key, content, content_type="image/jpeg")
                 # Keep storage key; sign when serving to clients

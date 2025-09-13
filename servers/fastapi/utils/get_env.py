@@ -112,3 +112,7 @@ def get_supabase_service_role_key_env():
 
 def get_supabase_bucket_env():
     return os.getenv("SUPABASE_STORAGE_BUCKET")
+
+# Google Cloud Storage
+def get_gcs_bucket_env():
+    return os.getenv("GCS_BUCKET")
