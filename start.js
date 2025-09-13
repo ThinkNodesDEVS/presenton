@@ -3,6 +3,7 @@
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn, exec } from 'child_process';
+import net from 'net';
 import { existsSync, mkdirSync, rmSync, cpSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -105,7 +106,7 @@ const startServers = async () => {
   
   const fastApiProcess = spawn(
     "python",
-    ["server.py", "--port", fastapiPort.toString(), "--reload", isDev],
+    ["server.py", "--port", fastapiPort.toString(), "--reload", String(isDev)],
     {
       cwd: fastapiDir,
       stdio: "inherit",
@@ -206,8 +207,8 @@ const startServers = async () => {
 
 // Start nginx service
 const startNginx = () => {
-  console.log('🌐 Starting Nginx reverse proxy...');
-  const nginxProcess = spawn('service', ['nginx', 'start'], {
+  console.log('🌐 Starting Nginx reverse proxy (foreground)...');
+  const nginxProcess = spawn('nginx', ['-g', 'daemon off;'], {
     stdio: 'inherit',
     env: process.env,
   });
@@ -217,11 +218,7 @@ const startNginx = () => {
   });
 
   nginxProcess.on('exit', (code) => {
-    if (code === 0) {
-      console.log('✅ Nginx started successfully');
-    } else {
-      console.error(`❌ Nginx failed to start with exit code: ${code}`);
-    }
+    console.error(`💥 Nginx exited with code: ${code}`);
   });
 };
 
@@ -239,4 +236,44 @@ if (canChangeKeys) {
 }
 
 startServers();
-startNginx();
+
+// Rewrite nginx to Cloud Run $PORT and wait for app servers before starting
+(async () => {
+  const port = process.env.PORT || '8080';
+  try {
+    const p = '/etc/nginx/nginx.conf';
+    let conf = readFileSync(p, 'utf8');
+    conf = conf.replace('listen 80;', `listen ${port};`);
+    conf = conf.replace(/proxy_pass http:\/\/localhost:3000/g, 'proxy_pass http://127.0.0.1:3000');
+    conf = conf.replace(/proxy_pass http:\/\/localhost:8000/g, 'proxy_pass http://127.0.0.1:8000');
+    conf = conf.replace(/proxy_set_header X-Forwarded-Proto \$scheme;/g, 'proxy_set_header X-Forwarded-Proto https;');
+    conf = conf.replace(/proxy_set_header X-Forwarded-Host \$http_host;/g, 'proxy_set_header X-Forwarded-Host $host;');
+    writeFileSync(p, conf);
+    console.log(`🔧 Nginx configured to listen on ${port}`);
+  } catch (e) {
+    console.warn('⚠️  Could not rewrite nginx.conf:', e?.message || e);
+  }
+
+  const waitForPort = (port, host = '127.0.0.1', timeoutMs = 60000) => new Promise((resolve, reject) => {
+    const start = Date.now();
+    const attempt = () => {
+      const s = net.connect(port, host, () => { s.end(); resolve(true); });
+      s.on('error', () => {
+        if (Date.now() - start > timeoutMs) return reject(new Error(`Timeout waiting for ${host}:${port}`));
+        setTimeout(attempt, 500);
+      });
+    };
+    attempt();
+  });
+
+  try {
+    await Promise.all([
+      waitForPort(3000).then(() => console.log('✅ Next.js is up on 3000')),
+      waitForPort(8000).then(() => console.log('✅ FastAPI is up on 8000')),
+    ]);
+  } catch (e) {
+    console.warn('⚠️  Proceeding to start Nginx despite port wait error:', e?.message || e);
+  }
+
+  startNginx();
+})();
