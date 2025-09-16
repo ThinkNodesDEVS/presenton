@@ -59,26 +59,18 @@ class GCSStorage(StorageService):
         blob = self.bucket.blob(key)
         # Upload from memory
         blob.upload_from_string(content, content_type=content_type or "application/octet-stream")
+        # Make object public (temporary approach per request)
+        try:
+            blob.make_public()
+        except Exception:
+            # Ignore if bucket uses uniform access or lacks ACL changes
+            pass
         return key
 
     async def get_signed_url(self, key: str, expires_in: int = 3600) -> str:
         blob = self.bucket.blob(key)
-        try:
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=expires_in,
-                method="GET",
-            )
-        except AttributeError:
-            # Fallback for ADC without private key: use IAM signing if possible
-            if not self.signer_email:
-                raise
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=expires_in,
-                method="GET",
-                service_account_email=self.signer_email,
-            )
+        # Return public URL directly
+        return blob.public_url
 
     async def delete(self, key: str) -> None:
         blob = self.bucket.blob(key)
