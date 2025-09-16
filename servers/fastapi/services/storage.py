@@ -46,6 +46,14 @@ class GCSStorage(StorageService):
         # Uses Application Default Credentials on Cloud Run
         self.client = gcs.Client()
         self.bucket = self.client.bucket(self.bucket_name)
+        # Prefer explicit signer email via env; otherwise try to fetch from GCS API
+        self.signer_email = os.getenv("GCS_SIGNING_SERVICE_ACCOUNT")
+        if not self.signer_email:
+            try:
+                # May return a project-level service account for GCS; useful for IAM signing
+                self.signer_email = self.client.get_service_account_email()
+            except Exception:
+                self.signer_email = None
 
     async def save(self, key: str, content: bytes, content_type: Optional[str] = None) -> str:
         blob = self.bucket.blob(key)
@@ -55,8 +63,22 @@ class GCSStorage(StorageService):
 
     async def get_signed_url(self, key: str, expires_in: int = 3600) -> str:
         blob = self.bucket.blob(key)
-        url = blob.generate_signed_url(version="v4", expiration=expires_in, method="GET")
-        return url
+        try:
+            return blob.generate_signed_url(
+                version="v4",
+                expiration=expires_in,
+                method="GET",
+            )
+        except AttributeError:
+            # Fallback for ADC without private key: use IAM signing if possible
+            if not self.signer_email:
+                raise
+            return blob.generate_signed_url(
+                version="v4",
+                expiration=expires_in,
+                method="GET",
+                service_account_email=self.signer_email,
+            )
 
     async def delete(self, key: str) -> None:
         blob = self.bucket.blob(key)

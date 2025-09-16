@@ -27,10 +27,8 @@ export class ApiResponseHandler {
 
     // Handle error responses
     let errorMessage = defaultErrorMessage;
-    
     try {
       const errorData: ApiErrorResponse = await response.json();
-      
       // Extract error message in order of preference
       if (errorData.detail) {
         errorMessage = errorData.detail;
@@ -38,6 +36,16 @@ export class ApiResponseHandler {
         errorMessage = errorData.message;
       } else if (errorData.error) {
         errorMessage = errorData.error;
+      }
+
+      // Friendly message for overloaded/UNAVAILABLE model (e.g., Gemini 503)
+      const compactMsg = `${errorMessage}`.toLowerCase();
+      if (
+        response.status === 503 ||
+        compactMsg.includes("model is overloaded") ||
+        compactMsg.includes("unavailable")
+      ) {
+        errorMessage = "The AI model is temporarily overloaded. Please try again in a moment.";
       }
     } catch (parseError) {
       // If JSON parsing fails, use status-based messages
@@ -109,7 +117,7 @@ export class ApiResponseHandler {
       case 502:
         return "Bad gateway. The server is temporarily unavailable.";
       case 503:
-        return "Service unavailable. Please try again later.";
+        return "The AI model is temporarily overloaded. Please try again in a moment.";
       case 504:
         return "Gateway timeout. The request took too long to process.";
       default:

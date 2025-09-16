@@ -35,7 +35,15 @@ logger = logging.getLogger("presenton-backend")
 
 database_url, connect_args = get_database_url_and_connect_args()
 
-sql_engine: AsyncEngine = create_async_engine(database_url, connect_args=connect_args)
+sql_engine: AsyncEngine = create_async_engine(
+    database_url,
+    connect_args=connect_args,
+    pool_pre_ping=True,           # proactively validate connections
+    pool_recycle=1800,            # recycle connections every 30 minutes
+    pool_size=5,                  # reasonable default for serverless DBs
+    max_overflow=10,              # allow bursts
+    pool_timeout=30,              # wait up to 30s for a connection
+)
 async_session_maker = async_sessionmaker(sql_engine, expire_on_commit=False)
 
 

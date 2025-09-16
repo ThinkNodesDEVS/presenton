@@ -86,7 +86,7 @@ class ImageGenerationService:
                 # If provider returned already a URL, pass through
                 if isinstance(image_url_or_key, str) and image_url_or_key.startswith("http"):
                     return image_url_or_key
-            raise Exception(f"Image not found at {image_path}")
+            raise Exception("Image not found in provider response")
 
         except Exception as e:
             print(f"Error generating image: {e}")
