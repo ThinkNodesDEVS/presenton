@@ -64,40 +64,31 @@ class ImageGenerationService:
                 image_url = await self.image_gen_func(image_prompt)
                 return image_url
             else:
-                # Providers generating binary (OpenAI/Gemini): upload to Supabase and return STORAGE KEY (not signed URL)
-                image_url_or_key = await self.image_gen_func(image_prompt, self.output_directory)
-                # For compatibility if the provider still writes to disk, upload from disk
-                if image_url_or_key and os.path.exists(str(image_url_or_key)):
-                    with open(str(image_url_or_key), "rb") as f:
-                        content = f.read()
-                    filename = os.path.basename(str(image_url_or_key))
-                    storage = get_storage()
-                    key = build_user_key(self.user_id, "images", filename)
-                    await storage.save(key, content, content_type="image/jpeg")
-                    # Store object key so clients can re-sign on demand
-                    return ImageAsset(
-                        path=key,
-                        extras={
-                            "prompt": prompt.prompt,
-                            "theme_prompt": prompt.theme_prompt,
-                        },
-                    )
-                # If provider returned already a URL, pass through
-                if isinstance(image_url_or_key, str) and image_url_or_key.startswith("http"):
-                    return image_url_or_key
-                # If provider returned a storage key (GCS/Supabase key), wrap it in ImageAsset
-                if isinstance(image_url_or_key, str) and not image_url_or_key.startswith("/static/"):
-                    return ImageAsset(
-                        path=image_url_or_key,
-                        extras={
-                            "prompt": prompt.prompt,
-                            "theme_prompt": prompt.theme_prompt,
-                        },
-                    )
-                # If provider returned already a URL, pass through
-                if isinstance(image_url_or_key, str) and image_url_or_key.startswith("http"):
-                    return image_url_or_key
-            raise Exception("Image not found in provider response")
+                # Providers generating binary (OpenAI/Gemini): get storage key or URL
+                result = await self.image_gen_func(image_prompt, self.output_directory)
+                
+                # Handle different return types from providers
+                if isinstance(result, ImageAsset):
+                    return result
+                elif isinstance(result, str):
+                    if result.startswith("http"):
+                        # Direct URL
+                        return result
+                    elif result.startswith("/static/"):
+                        # Placeholder
+                        return result
+                    else:
+                        # Storage key - wrap in ImageAsset
+                        return ImageAsset(
+                            path=result,
+                            extras={
+                                "prompt": prompt.prompt,
+                                "theme_prompt": prompt.theme_prompt,
+                            },
+                        )
+                else:
+                    # Unexpected return type
+                    return "/static/images/placeholder.jpg"
 
         except Exception as e:
             print(f"Error generating image: {e}")
@@ -126,117 +117,114 @@ class ImageGenerationService:
         # Return storage key (re-sign when serving)
         return key
 
-    # async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-    #     client = genai.Client()
-    #     response = await asyncio.to_thread(
-    #         client.models.generate_content,
-    #         model="gemini-2.5-flash-image-preview",
-    #         contents=[prompt],
-    #         config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-    #     )
-
-    #     image_path = None
-    #     for part in response.candidates[0].content.parts:
-    #         if part.text is not None:
-    #             print(part.text)
-    #         elif part.inline_data is not None:
-    #             content = part.inline_data.data
-    #             filename = f"{get_random_uuid()}.jpg"
-    #             storage = get_storage()
-    #             key = build_user_key(self.user_id, "images", filename)
-    #             await storage.save(key, content, content_type="image/jpeg")
-    #             # Keep storage key; sign when serving to clients
-    #             image_path = key
-
-    #     return image_path or "/static/images/placeholder.jpg"
-
     async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-        try:
-            client = genai.Client()
-            response = await asyncio.to_thread(
-                client.models.generate_content,
-                model="gemini-2.5-flash-image-preview",
-                contents=[prompt],
-                config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-            )
+        client = genai.Client()
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model="gemini-2.5-flash-image-preview",
+            contents=[prompt],
+            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+        )
 
-            # Debug: Log the full response structure
-            print(f"DEBUG: Gemini response received for prompt: {prompt[:50]}...")
-            print(f"DEBUG: Response type: {type(response)}")
+        # Extract image from response
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, 'inline_data') and part.inline_data and part.inline_data.data:
+                content = part.inline_data.data
+                filename = f"{get_random_uuid()}.jpg"
+                storage = get_storage()
+                key = build_user_key(self.user_id, "images", filename)
+                await storage.save(key, content, content_type="image/jpeg")
+                return key  # Return storage key
+        
+        return "/static/images/placeholder.jpg"
+
+    # async def generate_image_google(self, prompt: str, output_directory: str) -> str:
+    #     try:
+    #         client = genai.Client()
+    #         response = await asyncio.to_thread(
+    #             client.models.generate_content,
+    #             model="gemini-2.5-flash-image-preview",
+    #             contents=[prompt],
+    #             config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+    #         )
+
+    #         # Debug: Log the full response structure
+    #         print(f"DEBUG: Gemini response received for prompt: {prompt[:50]}...")
+    #         print(f"DEBUG: Response type: {type(response)}")
             
-            # Check if response has candidates
-            if not hasattr(response, 'candidates') or not response.candidates:
-                print(f"ERROR: No candidates in response. Response attributes: {dir(response)}")
-                return "/static/images/placeholder.jpg"
+    #         # Check if response has candidates
+    #         if not hasattr(response, 'candidates') or not response.candidates:
+    #             print(f"ERROR: No candidates in response. Response attributes: {dir(response)}")
+    #             return "/static/images/placeholder.jpg"
             
-            print(f"DEBUG: Number of candidates: {len(response.candidates)}")
+    #         print(f"DEBUG: Number of candidates: {len(response.candidates)}")
             
-            # Check first candidate
-            candidate = response.candidates[0]
-            print(f"DEBUG: Candidate type: {type(candidate)}")
-            print(f"DEBUG: Candidate attributes: {dir(candidate)}")
+    #         # Check first candidate
+    #         candidate = response.candidates[0]
+    #         print(f"DEBUG: Candidate type: {type(candidate)}")
+    #         print(f"DEBUG: Candidate attributes: {dir(candidate)}")
             
-            if not hasattr(candidate, 'content') or not candidate.content:
-                print(f"ERROR: No content in candidate. Candidate: {candidate}")
-                return "/static/images/placeholder.jpg"
+    #         if not hasattr(candidate, 'content') or not candidate.content:
+    #             print(f"ERROR: No content in candidate. Candidate: {candidate}")
+    #             return "/static/images/placeholder.jpg"
             
-            # Check content parts
-            content = candidate.content
-            print(f"DEBUG: Content type: {type(content)}")
-            print(f"DEBUG: Content attributes: {dir(content)}")
+    #         # Check content parts
+    #         content = candidate.content
+    #         print(f"DEBUG: Content type: {type(content)}")
+    #         print(f"DEBUG: Content attributes: {dir(content)}")
             
-            if not hasattr(content, 'parts') or not content.parts:
-                print(f"ERROR: No parts in content. Content: {content}")
-                return "/static/images/placeholder.jpg"
+    #         if not hasattr(content, 'parts') or not content.parts:
+    #             print(f"ERROR: No parts in content. Content: {content}")
+    #             return "/static/images/placeholder.jpg"
             
-            print(f"DEBUG: Number of parts: {len(content.parts)}")
+    #         print(f"DEBUG: Number of parts: {len(content.parts)}")
             
-            image_path = None
-            for i, part in enumerate(content.parts):
-                print(f"DEBUG: Part {i} type: {type(part)}")
-                print(f"DEBUG: Part {i} attributes: {dir(part)}")
+    #         image_path = None
+    #         for i, part in enumerate(content.parts):
+    #             print(f"DEBUG: Part {i} type: {type(part)}")
+    #             print(f"DEBUG: Part {i} attributes: {dir(part)}")
                 
-                if hasattr(part, 'text') and part.text is not None:
-                    print(f"DEBUG: Part {i} has text: {part.text[:100]}...")
-                elif hasattr(part, 'inline_data') and part.inline_data is not None:
-                    print(f"DEBUG: Part {i} has inline_data")
-                    print(f"DEBUG: Inline data type: {type(part.inline_data)}")
-                    print(f"DEBUG: Inline data attributes: {dir(part.inline_data)}")
+    #             if hasattr(part, 'text') and part.text is not None:
+    #                 print(f"DEBUG: Part {i} has text: {part.text[:100]}...")
+    #             elif hasattr(part, 'inline_data') and part.inline_data is not None:
+    #                 print(f"DEBUG: Part {i} has inline_data")
+    #                 print(f"DEBUG: Inline data type: {type(part.inline_data)}")
+    #                 print(f"DEBUG: Inline data attributes: {dir(part.inline_data)}")
                     
-                    if hasattr(part.inline_data, 'data') and part.inline_data.data:
-                        print(f"DEBUG: Found image data, size: {len(part.inline_data.data)} bytes")
-                        content = part.inline_data.data
-                        filename = f"{get_random_uuid()}.jpg"
-                        storage = get_storage()
-                        key = build_user_key(self.user_id, "images", filename)
-                        await storage.save(key, content, content_type="image/jpeg")
-                        image_path = key
-                        print(f"DEBUG: Successfully saved image as: {key}")
-                    else:
-                        print(f"ERROR: Part {i} inline_data has no data attribute or data is empty")
-                else:
-                    print(f"DEBUG: Part {i} has neither text nor inline_data")
-                    print(f"DEBUG: Part {i} content: {part}")
+    #                 if hasattr(part.inline_data, 'data') and part.inline_data.data:
+    #                     print(f"DEBUG: Found image data, size: {len(part.inline_data.data)} bytes")
+    #                     content = part.inline_data.data
+    #                     filename = f"{get_random_uuid()}.jpg"
+    #                     storage = get_storage()
+    #                     key = build_user_key(self.user_id, "images", filename)
+    #                     await storage.save(key, content, content_type="image/jpeg")
+    #                     image_path = key
+    #                     print(f"DEBUG: Successfully saved image as: {key}")
+    #                 else:
+    #                     print(f"ERROR: Part {i} inline_data has no data attribute or data is empty")
+    #             else:
+    #                 print(f"DEBUG: Part {i} has neither text nor inline_data")
+    #                 print(f"DEBUG: Part {i} content: {part}")
 
-            if not image_path:
-                print(f"ERROR: No image found in any part. Total parts processed: {len(content.parts)}")
+    #         if not image_path:
+    #             print(f"ERROR: No image found in any part. Total parts processed: {len(content.parts)}")
             
-            if image_path:
-                return ImageAsset(
-                    path=image_path,
-                    extras={
-                        "prompt": prompt,
-                        "theme_prompt": "",  # or pass the original theme if available
-                    },
-                )
-            return "/static/images/placeholder.jpg"
+    #         if image_path:
+    #             return ImageAsset(
+    #                 path=image_path,
+    #                 extras={
+    #                     "prompt": prompt,
+    #                     "theme_prompt": "",  # or pass the original theme if available
+    #                 },
+    #             )
+    #         return "/static/images/placeholder.jpg"
             
-        except Exception as e:
-            print(f"ERROR: Exception in generate_image_google: {type(e).__name__}: {str(e)}")
-            print(f"ERROR: Prompt was: {prompt}")
-            import traceback
-            print(f"ERROR: Traceback: {traceback.format_exc()}")
-            return "/static/images/placeholder.jpg"
+    #     except Exception as e:
+    #         print(f"ERROR: Exception in generate_image_google: {type(e).__name__}: {str(e)}")
+    #         print(f"ERROR: Prompt was: {prompt}")
+    #         import traceback
+    #         print(f"ERROR: Traceback: {traceback.format_exc()}")
+    #         return "/static/images/placeholder.jpg"
 
     async def get_image_from_pexels(self, prompt: str) -> str:
         async with aiohttp.ClientSession(trust_env=True) as session:
