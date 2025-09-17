@@ -85,6 +85,18 @@ class ImageGenerationService:
                 # If provider returned already a URL, pass through
                 if isinstance(image_url_or_key, str) and image_url_or_key.startswith("http"):
                     return image_url_or_key
+                # If provider returned a storage key (GCS/Supabase key), wrap it in ImageAsset
+                if isinstance(image_url_or_key, str) and not image_url_or_key.startswith("/static/"):
+                    return ImageAsset(
+                        path=image_url_or_key,
+                        extras={
+                            "prompt": prompt.prompt,
+                            "theme_prompt": prompt.theme_prompt,
+                        },
+                    )
+                # If provider returned already a URL, pass through
+                if isinstance(image_url_or_key, str) and image_url_or_key.startswith("http"):
+                    return image_url_or_key
             raise Exception("Image not found in provider response")
 
         except Exception as e:
