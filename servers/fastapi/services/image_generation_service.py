@@ -1,6 +1,5 @@
 import asyncio
 import os
-import logging
 import aiohttp
 from google import genai
 from google.genai.types import GenerateContentConfig
@@ -116,81 +115,28 @@ class ImageGenerationService:
         return key
 
     async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-        TIMEOUT_S = 40
-        MAX_RETRIES = 3
-        TRANSIENT_MARKERS = (
-            "429",
-            "500",
-            "502",
-            "503",
-            "504",
-            "DeadlineExceeded",
-            "ServiceUnavailable",
-            "Rate",
-            "temporarily",
+        client = genai.Client()
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model="gemini-2.5-flash-image-preview",
+            contents=[prompt],
+            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
         )
 
-        async def _call_model(model_name: str):
-            client = genai.Client()
-            return await asyncio.to_thread(
-                client.models.generate_content,
-                model=model_name,
-                contents=[prompt],
-                config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-            )
+        image_path = None
+        for part in response.candidates[0].content.parts:
+            if part.text is not None:
+                print(part.text)
+            elif part.inline_data is not None:
+                content = part.inline_data.data
+                filename = f"{get_random_uuid()}.jpg"
+                storage = get_storage()
+                key = build_user_key(self.user_id, "images", filename)
+                await storage.save(key, content, content_type="image/jpeg")
+                # Keep storage key; sign when serving to clients
+                image_path = key
 
-        async def _generate_with_retries(model_name: str) -> str | None:
-            last_exc = None
-            for attempt in range(MAX_RETRIES):
-                try:
-                    response = await _call_model(model_name)
-                    candidates = getattr(response, "candidates", None) or []
-                    if not candidates or not getattr(candidates[0], "content", None):
-                        raise RuntimeError("Empty response from Gemini")
-
-                    parts = getattr(candidates[0].content, "parts", None) or []
-                    for part in parts:
-                        if getattr(part, "inline_data", None) and getattr(part.inline_data, "data", None):
-                            content = part.inline_data.data
-                            filename = f"{get_random_uuid()}.jpg"
-                            storage = get_storage()
-                            key = build_user_key(self.user_id, "images", filename)
-                            await storage.save(key, content, content_type="image/jpeg")
-                            return key
-
-                    # If we reach here, we did not find an image
-                    raise RuntimeError("No image bytes in Gemini response")
-                except Exception as e:
-                    last_exc = e
-                    msg = str(e)
-                    is_transient = any(marker in msg for marker in TRANSIENT_MARKERS)
-                    if attempt < MAX_RETRIES - 1 and is_transient:
-                        await asyncio.sleep(0.75 * (2 ** attempt))
-                        continue
-                    logging.warning(
-                        "Gemini image generation failed for %s (attempt %s/%s): %s",
-                        model_name,
-                        attempt + 1,
-                        MAX_RETRIES,
-                        msg,
-                    )
-                    break
-            return None
-
-        # Try primary model first
-        primary_model = "gemini-2.5-flash-image-preview"
-        key = await _generate_with_retries(primary_model)
-        if key:
-            return key
-
-        # Fallback to an alternative model (e.g., 2.0)
-        fallback_model = "gemini-2.0-flash"
-        key = await _generate_with_retries(fallback_model)
-        if key:
-            return key
-
-        # Graceful final fallback
-        return "/static/images/placeholder.jpg"
+        return image_path or "/static/images/placeholder.jpg"
 
     async def get_image_from_pexels(self, prompt: str) -> str:
         async with aiohttp.ClientSession(trust_env=True) as session:
