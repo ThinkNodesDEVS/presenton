@@ -137,7 +137,6 @@ class ImageGenerationService:
                 model=model_name,
                 contents=[prompt],
                 config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-                request_options={"timeout": TIMEOUT_S},
             )
 
         async def _generate_with_retries(model_name: str) -> str | None:
