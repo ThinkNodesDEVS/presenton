@@ -209,7 +209,15 @@ class ImageGenerationService:
             if not image_path:
                 print(f"ERROR: No image found in any part. Total parts processed: {len(content.parts)}")
             
-            return image_path or "/static/images/placeholder.jpg"
+            if image_path:
+                return ImageAsset(
+                    path=image_path,
+                    extras={
+                        "prompt": prompt,
+                        "theme_prompt": "",  # or pass the original theme if available
+                    },
+                )
+            return "/static/images/placeholder.jpg"
             
         except Exception as e:
             print(f"ERROR: Exception in generate_image_google: {type(e).__name__}: {str(e)}")
