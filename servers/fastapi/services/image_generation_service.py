@@ -114,29 +114,109 @@ class ImageGenerationService:
         # Return storage key (re-sign when serving)
         return key
 
+    # async def generate_image_google(self, prompt: str, output_directory: str) -> str:
+    #     client = genai.Client()
+    #     response = await asyncio.to_thread(
+    #         client.models.generate_content,
+    #         model="gemini-2.5-flash-image-preview",
+    #         contents=[prompt],
+    #         config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+    #     )
+
+    #     image_path = None
+    #     for part in response.candidates[0].content.parts:
+    #         if part.text is not None:
+    #             print(part.text)
+    #         elif part.inline_data is not None:
+    #             content = part.inline_data.data
+    #             filename = f"{get_random_uuid()}.jpg"
+    #             storage = get_storage()
+    #             key = build_user_key(self.user_id, "images", filename)
+    #             await storage.save(key, content, content_type="image/jpeg")
+    #             # Keep storage key; sign when serving to clients
+    #             image_path = key
+
+    #     return image_path or "/static/images/placeholder.jpg"
+
     async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-        client = genai.Client()
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.5-flash-image-preview",
-            contents=[prompt],
-            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-        )
+        try:
+            client = genai.Client()
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model="gemini-2.5-flash-image-preview",
+                contents=[prompt],
+                config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+            )
 
-        image_path = None
-        for part in response.candidates[0].content.parts:
-            if part.text is not None:
-                print(part.text)
-            elif part.inline_data is not None:
-                content = part.inline_data.data
-                filename = f"{get_random_uuid()}.jpg"
-                storage = get_storage()
-                key = build_user_key(self.user_id, "images", filename)
-                await storage.save(key, content, content_type="image/jpeg")
-                # Keep storage key; sign when serving to clients
-                image_path = key
+            # Debug: Log the full response structure
+            print(f"DEBUG: Gemini response received for prompt: {prompt[:50]}...")
+            print(f"DEBUG: Response type: {type(response)}")
+            
+            # Check if response has candidates
+            if not hasattr(response, 'candidates') or not response.candidates:
+                print(f"ERROR: No candidates in response. Response attributes: {dir(response)}")
+                return "/static/images/placeholder.jpg"
+            
+            print(f"DEBUG: Number of candidates: {len(response.candidates)}")
+            
+            # Check first candidate
+            candidate = response.candidates[0]
+            print(f"DEBUG: Candidate type: {type(candidate)}")
+            print(f"DEBUG: Candidate attributes: {dir(candidate)}")
+            
+            if not hasattr(candidate, 'content') or not candidate.content:
+                print(f"ERROR: No content in candidate. Candidate: {candidate}")
+                return "/static/images/placeholder.jpg"
+            
+            # Check content parts
+            content = candidate.content
+            print(f"DEBUG: Content type: {type(content)}")
+            print(f"DEBUG: Content attributes: {dir(content)}")
+            
+            if not hasattr(content, 'parts') or not content.parts:
+                print(f"ERROR: No parts in content. Content: {content}")
+                return "/static/images/placeholder.jpg"
+            
+            print(f"DEBUG: Number of parts: {len(content.parts)}")
+            
+            image_path = None
+            for i, part in enumerate(content.parts):
+                print(f"DEBUG: Part {i} type: {type(part)}")
+                print(f"DEBUG: Part {i} attributes: {dir(part)}")
+                
+                if hasattr(part, 'text') and part.text is not None:
+                    print(f"DEBUG: Part {i} has text: {part.text[:100]}...")
+                elif hasattr(part, 'inline_data') and part.inline_data is not None:
+                    print(f"DEBUG: Part {i} has inline_data")
+                    print(f"DEBUG: Inline data type: {type(part.inline_data)}")
+                    print(f"DEBUG: Inline data attributes: {dir(part.inline_data)}")
+                    
+                    if hasattr(part.inline_data, 'data') and part.inline_data.data:
+                        print(f"DEBUG: Found image data, size: {len(part.inline_data.data)} bytes")
+                        content = part.inline_data.data
+                        filename = f"{get_random_uuid()}.jpg"
+                        storage = get_storage()
+                        key = build_user_key(self.user_id, "images", filename)
+                        await storage.save(key, content, content_type="image/jpeg")
+                        image_path = key
+                        print(f"DEBUG: Successfully saved image as: {key}")
+                    else:
+                        print(f"ERROR: Part {i} inline_data has no data attribute or data is empty")
+                else:
+                    print(f"DEBUG: Part {i} has neither text nor inline_data")
+                    print(f"DEBUG: Part {i} content: {part}")
 
-        return image_path or "/static/images/placeholder.jpg"
+            if not image_path:
+                print(f"ERROR: No image found in any part. Total parts processed: {len(content.parts)}")
+            
+            return image_path or "/static/images/placeholder.jpg"
+            
+        except Exception as e:
+            print(f"ERROR: Exception in generate_image_google: {type(e).__name__}: {str(e)}")
+            print(f"ERROR: Prompt was: {prompt}")
+            import traceback
+            print(f"ERROR: Traceback: {traceback.format_exc()}")
+            return "/static/images/placeholder.jpg"
 
     async def get_image_from_pexels(self, prompt: str) -> str:
         async with aiohttp.ClientSession(trust_env=True) as session:
