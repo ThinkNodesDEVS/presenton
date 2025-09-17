@@ -1,4 +1,6 @@
 import asyncio
+import time
+import logging
 import os
 import aiohttp
 from google import genai
@@ -18,9 +20,14 @@ from utils.image_provider import (
     is_dalle3_selected,
 )
 from utils.randomizers import get_random_uuid
+from typing import Optional
 
 
 class ImageGenerationService:
+
+    _GEMINI_SEMAPHORE = asyncio.Semaphore(2)  # Limit concurrent requests
+    _LAST_REQUEST_TIME = 0
+    _MIN_REQUEST_INTERVAL = 0.5  # 500ms between requests
 
     def __init__(self, output_directory: str, user_id: str = "public"):
         self.output_directory = output_directory
@@ -117,114 +124,155 @@ class ImageGenerationService:
         # Return storage key (re-sign when serving)
         return key
 
-    async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-        client = genai.Client()
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model="gemini-2.5-flash-image-preview",
-            contents=[prompt],
-            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-        )
-
-        # Extract image from response
-        for part in response.candidates[0].content.parts:
-            if hasattr(part, 'inline_data') and part.inline_data and part.inline_data.data:
-                content = part.inline_data.data
-                filename = f"{get_random_uuid()}.jpg"
-                storage = get_storage()
-                key = build_user_key(self.user_id, "images", filename)
-                await storage.save(key, content, content_type="image/jpeg")
-                return key  # Return storage key
-        
-        return "/static/images/placeholder.jpg"
-
     # async def generate_image_google(self, prompt: str, output_directory: str) -> str:
-    #     try:
-    #         client = genai.Client()
-    #         response = await asyncio.to_thread(
-    #             client.models.generate_content,
-    #             model="gemini-2.5-flash-image-preview",
-    #             contents=[prompt],
-    #             config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-    #         )
+    #     client = genai.Client()
+    #     response = await asyncio.to_thread(
+    #         client.models.generate_content,
+    #         model="gemini-2.5-flash-image-preview",
+    #         contents=[prompt],
+    #         config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+    #     )
 
-    #         # Debug: Log the full response structure
-    #         print(f"DEBUG: Gemini response received for prompt: {prompt[:50]}...")
-    #         print(f"DEBUG: Response type: {type(response)}")
+    #     # Extract image from response
+    #     for part in response.candidates[0].content.parts:
+    #         if hasattr(part, 'inline_data') and part.inline_data and part.inline_data.data:
+    #             content = part.inline_data.data
+    #             filename = f"{get_random_uuid()}.jpg"
+    #             storage = get_storage()
+    #             key = build_user_key(self.user_id, "images", filename)
+    #             await storage.save(key, content, content_type="image/jpeg")
+    #             return key  # Return storage key
+        
+    #     return "/static/images/placeholder.jpg"
+
+
+    async def generate_image_google(self, prompt: str, output_directory: str) -> str:
+        """
+        Generate image with Google Gemini, includes retries and rate limiting.
+        Falls back to OpenAI if all retries fail.
+        """
+        MAX_RETRIES = 3
+        BASE_DELAY = 1.0  # Start with 1 second
+        MAX_DELAY = 16.0  # Cap at 16 seconds
+        
+        # Transient errors that should be retried
+        RETRYABLE_ERRORS = {
+            503,  # Service Unavailable / Model Overloaded
+            429,  # Too Many Requests
+            502,  # Bad Gateway
+            504,  # Gateway Timeout
+        }
+        
+        RETRYABLE_MESSAGES = {
+            "overloaded",
+            "unavailable", 
+            "try again later",
+            "rate limit",
+            "temporarily",
+        }
+        
+        async with _GEMINI_SEMAPHORE:  # Limit concurrent requests
+            # Rate limiting: ensure minimum time between requests
+            global _LAST_REQUEST_TIME
+            now = time.time()
+            time_since_last = now - _LAST_REQUEST_TIME
+            if time_since_last < _MIN_REQUEST_INTERVAL:
+                await asyncio.sleep(_MIN_REQUEST_INTERVAL - time_since_last)
+            _LAST_REQUEST_TIME = time.time()
             
-    #         # Check if response has candidates
-    #         if not hasattr(response, 'candidates') or not response.candidates:
-    #             print(f"ERROR: No candidates in response. Response attributes: {dir(response)}")
-    #             return "/static/images/placeholder.jpg"
-            
-    #         print(f"DEBUG: Number of candidates: {len(response.candidates)}")
-            
-    #         # Check first candidate
-    #         candidate = response.candidates[0]
-    #         print(f"DEBUG: Candidate type: {type(candidate)}")
-    #         print(f"DEBUG: Candidate attributes: {dir(candidate)}")
-            
-    #         if not hasattr(candidate, 'content') or not candidate.content:
-    #             print(f"ERROR: No content in candidate. Candidate: {candidate}")
-    #             return "/static/images/placeholder.jpg"
-            
-    #         # Check content parts
-    #         content = candidate.content
-    #         print(f"DEBUG: Content type: {type(content)}")
-    #         print(f"DEBUG: Content attributes: {dir(content)}")
-            
-    #         if not hasattr(content, 'parts') or not content.parts:
-    #             print(f"ERROR: No parts in content. Content: {content}")
-    #             return "/static/images/placeholder.jpg"
-            
-    #         print(f"DEBUG: Number of parts: {len(content.parts)}")
-            
-    #         image_path = None
-    #         for i, part in enumerate(content.parts):
-    #             print(f"DEBUG: Part {i} type: {type(part)}")
-    #             print(f"DEBUG: Part {i} attributes: {dir(part)}")
-                
-    #             if hasattr(part, 'text') and part.text is not None:
-    #                 print(f"DEBUG: Part {i} has text: {part.text[:100]}...")
-    #             elif hasattr(part, 'inline_data') and part.inline_data is not None:
-    #                 print(f"DEBUG: Part {i} has inline_data")
-    #                 print(f"DEBUG: Inline data type: {type(part.inline_data)}")
-    #                 print(f"DEBUG: Inline data attributes: {dir(part.inline_data)}")
+            # Retry loop with exponential backoff
+            for attempt in range(MAX_RETRIES):
+                try:
+                    print(f"DEBUG: Google image generation attempt {attempt + 1}/{MAX_RETRIES}")
                     
-    #                 if hasattr(part.inline_data, 'data') and part.inline_data.data:
-    #                     print(f"DEBUG: Found image data, size: {len(part.inline_data.data)} bytes")
-    #                     content = part.inline_data.data
-    #                     filename = f"{get_random_uuid()}.jpg"
-    #                     storage = get_storage()
-    #                     key = build_user_key(self.user_id, "images", filename)
-    #                     await storage.save(key, content, content_type="image/jpeg")
-    #                     image_path = key
-    #                     print(f"DEBUG: Successfully saved image as: {key}")
-    #                 else:
-    #                     print(f"ERROR: Part {i} inline_data has no data attribute or data is empty")
-    #             else:
-    #                 print(f"DEBUG: Part {i} has neither text nor inline_data")
-    #                 print(f"DEBUG: Part {i} content: {part}")
+                    client = genai.Client()
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            client.models.generate_content,
+                            model="gemini-2.5-flash-image-preview", 
+                            contents=[prompt],
+                            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+                        ),
+                        timeout=45.0  # 45 second timeout
+                    )
+                    
+                    # Extract image from response
+                    for part in response.candidates[0].content.parts:
+                        if hasattr(part, 'inline_data') and part.inline_data and part.inline_data.data:
+                            content = part.inline_data.data
+                            filename = f"{get_random_uuid()}.jpg"
+                            storage = get_storage()
+                            key = build_user_key(self.user_id, "images", filename)
+                            await storage.save(key, content, content_type="image/jpeg")
+                            print(f"DEBUG: Google image generation succeeded on attempt {attempt + 1}")
+                            return key
+                    
+                    # No image found in response - don't retry this
+                    print("WARNING: Google returned response but no image data")
+                    break
+                    
+                except asyncio.TimeoutError:
+                    error_msg = f"Google image generation timed out (attempt {attempt + 1})"
+                    print(f"ERROR: {error_msg}")
+                    last_error = error_msg
+                    
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    
+                    # Check if it's a retryable error
+                    is_retryable = False
+                    
+                    # Check for specific error codes (503, 429, etc.)
+                    if hasattr(e, 'status_code') and e.status_code in RETRYABLE_ERRORS:
+                        is_retryable = True
+                    elif any(msg in error_msg for msg in RETRYABLE_MESSAGES):
+                        is_retryable = True
+                    elif "503" in error_msg or "429" in error_msg:
+                        is_retryable = True
+                    
+                    last_error = f"Attempt {attempt + 1}: {str(e)}"
+                    print(f"ERROR: {last_error}")
+                    
+                    # Don't retry on non-transient errors
+                    if not is_retryable:
+                        print(f"ERROR: Non-retryable error, aborting: {error_msg}")
+                        break
+                
+                # Calculate exponential backoff delay (only if we're going to retry)
+                if attempt < MAX_RETRIES - 1:
+                    delay = min(BASE_DELAY * (2 ** attempt), MAX_DELAY)
+                    # Add jitter to prevent thundering herd
+                    jitter = delay * 0.1 * (0.5 + 0.5 * hash(prompt) % 100 / 100)
+                    total_delay = delay + jitter
+                    
+                    print(f"WARNING: Retrying Google image generation in {total_delay:.1f}s...")
+                    await asyncio.sleep(total_delay)
+            
+            # All Google attempts failed - fallback to OpenAI
+            print(f"ERROR: Google image generation failed after {MAX_RETRIES} attempts. Falling back to OpenAI...")
+            return await self._fallback_to_openai(prompt, output_directory)
 
-    #         if not image_path:
-    #             print(f"ERROR: No image found in any part. Total parts processed: {len(content.parts)}")
+    async def _fallback_to_openai(self, prompt: str, output_directory: str) -> str:
+        """
+        Fallback to OpenAI DALL-E 3 when Google fails.
+        """
+        try:
+            print("INFO: Attempting OpenAI DALL-E 3 fallback...")
             
-    #         if image_path:
-    #             return ImageAsset(
-    #                 path=image_path,
-    #                 extras={
-    #                     "prompt": prompt,
-    #                     "theme_prompt": "",  # or pass the original theme if available
-    #                 },
-    #             )
-    #         return "/static/images/placeholder.jpg"
+            # Check if OpenAI is configured
+            if not os.getenv("OPENAI_API_KEY"):
+                print("ERROR: OpenAI fallback failed - no API key configured")
+                return "/static/images/placeholder.jpg"
             
-    #     except Exception as e:
-    #         print(f"ERROR: Exception in generate_image_google: {type(e).__name__}: {str(e)}")
-    #         print(f"ERROR: Prompt was: {prompt}")
-    #         import traceback
-    #         print(f"ERROR: Traceback: {traceback.format_exc()}")
-    #         return "/static/images/placeholder.jpg"
+            # Use existing OpenAI method
+            result = await self.generate_image_openai(prompt, output_directory)
+            print("INFO: OpenAI fallback succeeded")
+            return result
+            
+        except Exception as e:
+            print(f"ERROR: OpenAI fallback also failed: {str(e)}")
+            return "/static/images/placeholder.jpg"
+
 
     async def get_image_from_pexels(self, prompt: str) -> str:
         async with aiohttp.ClientSession(trust_env=True) as session:
