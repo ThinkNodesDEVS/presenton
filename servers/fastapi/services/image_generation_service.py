@@ -5,6 +5,7 @@ import os
 import aiohttp
 from google import genai
 from google.genai.types import GenerateContentConfig
+from google.genai import errors as genai_errors
 from openai import AsyncOpenAI
 from models.image_prompt import ImagePrompt
 from models.sql.image_asset import ImageAsset
@@ -98,7 +99,11 @@ class ImageGenerationService:
                     return "/static/images/placeholder.jpg"
 
         except Exception as e:
-            print(f"Error generating image: {e}")
+            error_msg = str(e)
+            if "503" in error_msg or "overloaded" in error_msg.lower():
+                print(f"WARNING: Image generation service temporarily overloaded: {e}")
+            else:
+                print(f"ERROR: Image generation failed: {e}")
             return "/static/images/placeholder.jpg"
 
     async def generate_image_openai(self, prompt: str, output_directory: str) -> str:
@@ -151,9 +156,9 @@ class ImageGenerationService:
         Generate image with Google Gemini, includes retries and rate limiting.
         Falls back to OpenAI if all retries fail.
         """
-        MAX_RETRIES = 3
-        BASE_DELAY = 1.0  # Start with 1 second
-        MAX_DELAY = 16.0  # Cap at 16 seconds
+        MAX_RETRIES = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
+        BASE_DELAY = float(os.getenv("GEMINI_BASE_DELAY", "1.0"))  # Start with 1 second
+        MAX_DELAY = float(os.getenv("GEMINI_MAX_DELAY", "16.0"))  # Cap at 16 seconds
         
         # Transient errors that should be retried
         RETRYABLE_ERRORS = {
@@ -171,14 +176,15 @@ class ImageGenerationService:
             "temporarily",
         }
         
-        async with _GEMINI_SEMAPHORE:  # Limit concurrent requests
+        async with ImageGenerationService._GEMINI_SEMAPHORE:  # Limit concurrent requests
             # Rate limiting: ensure minimum time between requests
-            global _LAST_REQUEST_TIME
             now = time.time()
-            time_since_last = now - _LAST_REQUEST_TIME
-            if time_since_last < _MIN_REQUEST_INTERVAL:
-                await asyncio.sleep(_MIN_REQUEST_INTERVAL - time_since_last)
-            _LAST_REQUEST_TIME = time.time()
+            time_since_last = now - ImageGenerationService._LAST_REQUEST_TIME
+            if time_since_last < ImageGenerationService._MIN_REQUEST_INTERVAL:
+                await asyncio.sleep(ImageGenerationService._MIN_REQUEST_INTERVAL - time_since_last)
+            ImageGenerationService._LAST_REQUEST_TIME = time.time()
+            
+            last_error = "Unknown error"
             
             # Retry loop with exponential backoff
             for attempt in range(MAX_RETRIES):
@@ -212,26 +218,32 @@ class ImageGenerationService:
                     break
                     
                 except asyncio.TimeoutError:
-                    error_msg = f"Google image generation timed out (attempt {attempt + 1})"
-                    print(f"ERROR: {error_msg}")
-                    last_error = error_msg
+                    last_error = f"Google image generation timed out (attempt {attempt + 1})"
+                    print(f"ERROR: {last_error}")
                     
                 except Exception as e:
                     error_msg = str(e).lower()
+                    last_error = f"Attempt {attempt + 1}: {str(e)}"
                     
                     # Check if it's a retryable error
                     is_retryable = False
                     
-                    # Check for specific error codes (503, 429, etc.)
-                    if hasattr(e, 'status_code') and e.status_code in RETRYABLE_ERRORS:
+                    # Check for Google GenAI specific errors
+                    if isinstance(e, genai_errors.ServerError):
+                        # ServerError is always retryable (503, 502, 504, etc.)
+                        is_retryable = True
+                    elif isinstance(e, genai_errors.ClientError) and hasattr(e, 'status_code'):
+                        # Only retry certain client errors like 429 (rate limit)
+                        is_retryable = e.status_code in RETRYABLE_ERRORS
+                    elif hasattr(e, 'status_code') and e.status_code in RETRYABLE_ERRORS:
                         is_retryable = True
                     elif any(msg in error_msg for msg in RETRYABLE_MESSAGES):
                         is_retryable = True
-                    elif "503" in error_msg or "429" in error_msg:
+                    elif "503" in error_msg or "429" in error_msg or "serverror" in error_msg:
                         is_retryable = True
                     
-                    last_error = f"Attempt {attempt + 1}: {str(e)}"
                     print(f"ERROR: {last_error}")
+                    print(f"DEBUG: Error type: {type(e).__name__}, retryable: {is_retryable}")
                     
                     # Don't retry on non-transient errors
                     if not is_retryable:
@@ -249,7 +261,8 @@ class ImageGenerationService:
                     await asyncio.sleep(total_delay)
             
             # All Google attempts failed - fallback to OpenAI
-            print(f"ERROR: Google image generation failed after {MAX_RETRIES} attempts. Falling back to OpenAI...")
+            print(f"ERROR: Google image generation failed after {MAX_RETRIES} attempts. Last error: {last_error}")
+            print("INFO: Falling back to OpenAI...")
             return await self._fallback_to_openai(prompt, output_directory)
 
     async def _fallback_to_openai(self, prompt: str, output_directory: str) -> str:
@@ -292,3 +305,16 @@ class ImageGenerationService:
             data = await response.json()
             image_url = data["hits"][0]["largeImageURL"]
             return image_url
+
+    def get_retry_stats(self) -> dict:
+        """
+        Get current retry/rate limiting configuration for monitoring.
+        """
+        return {
+            "max_retries": int(os.getenv("GEMINI_MAX_RETRIES", "3")),
+            "base_delay": float(os.getenv("GEMINI_BASE_DELAY", "1.0")),
+            "max_delay": float(os.getenv("GEMINI_MAX_DELAY", "16.0")),
+            "max_concurrent": ImageGenerationService._GEMINI_SEMAPHORE._value,
+            "min_request_interval": ImageGenerationService._MIN_REQUEST_INTERVAL,
+            "openai_fallback_enabled": bool(os.getenv("OPENAI_API_KEY")),
+        }
