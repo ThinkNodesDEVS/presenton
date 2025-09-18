@@ -223,18 +223,19 @@ class ImageGenerationService:
                 except Exception as e:
                     error_msg = str(e).lower()
                     last_error = f"Attempt {attempt + 1}: {str(e)}"
-                                
+                    
                     # Check if it's a retryable error
                     is_retryable = False
+                    status_code = getattr(e, "status_code", None)
                     
                     # Check for Google GenAI specific errors
                     if isinstance(e, genai_errors.ServerError):
                         # ServerError is always retryable (503, 502, 504, etc.)
                         is_retryable = True
-                    elif isinstance(e, genai_errors.ClientError) and hasattr(e, 'status_code'):
+                    elif isinstance(e, genai_errors.ClientError) and isinstance(status_code, int):
                         # Only retry certain client errors like 429 (rate limit)
-                        is_retryable = e.status_code in RETRYABLE_ERRORS
-                    elif hasattr(e, 'status_code') and e.status_code in RETRYABLE_ERRORS:
+                        is_retryable = status_code in RETRYABLE_ERRORS
+                    elif isinstance(status_code, int) and status_code in RETRYABLE_ERRORS:
                         is_retryable = True
                     elif any(msg in error_msg for msg in RETRYABLE_MESSAGES):
                         is_retryable = True
