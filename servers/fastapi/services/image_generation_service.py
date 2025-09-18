@@ -88,7 +88,7 @@ class ImageGenerationService:
                     else:
                         # Storage key - wrap in ImageAsset
                         return ImageAsset(
-                                path=result,
+                            path=result,
                             extras={
                                 "prompt": prompt.prompt,
                                 "theme_prompt": prompt.theme_prompt,
