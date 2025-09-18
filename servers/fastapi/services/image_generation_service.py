@@ -87,13 +87,13 @@ class ImageGenerationService:
                         return result
                     else:
                         # Storage key - wrap in ImageAsset
-                        return ImageAsset(
+                    return ImageAsset(
                             path=result,
-                            extras={
-                                "prompt": prompt.prompt,
-                                "theme_prompt": prompt.theme_prompt,
-                            },
-                        )
+                        extras={
+                            "prompt": prompt.prompt,
+                            "theme_prompt": prompt.theme_prompt,
+                        },
+                    )
                 else:
                     # Unexpected return type
                     return "/static/images/placeholder.jpg"
@@ -190,18 +190,17 @@ class ImageGenerationService:
             for attempt in range(MAX_RETRIES):
                 try:
                     print(f"DEBUG: Google image generation attempt {attempt + 1}/{MAX_RETRIES}")
-                    
                     client = genai.Client()
                     response = await asyncio.wait_for(
                         asyncio.to_thread(
-                            client.models.generate_content,
-                            model="gemini-2.5-flash-image-preview", 
-                            contents=[prompt],
-                            config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
-                        ),
+                    client.models.generate_content,
+                    model="gemini-2.5-flash-image-preview",
+                    contents=[prompt],
+                    config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
+                                ),
                         timeout=45.0  # 45 second timeout
                     )
-                    
+
                     # Extract image from response
                     for part in response.candidates[0].content.parts:
                         if hasattr(part, 'inline_data') and part.inline_data and part.inline_data.data:
@@ -212,11 +211,11 @@ class ImageGenerationService:
                             await storage.save(key, content, content_type="image/jpeg")
                             print(f"DEBUG: Google image generation succeeded on attempt {attempt + 1}")
                             return key
-                    
-                    # No image found in response - don't retry this
-                    print("WARNING: Google returned response but no image data")
-                    break
-                    
+                                
+                        # No image found in response - don't retry this
+                        print("WARNING: Google returned response but no image data")
+                        break
+                                
                 except asyncio.TimeoutError:
                     last_error = f"Google image generation timed out (attempt {attempt + 1})"
                     print(f"ERROR: {last_error}")
@@ -224,7 +223,7 @@ class ImageGenerationService:
                 except Exception as e:
                     error_msg = str(e).lower()
                     last_error = f"Attempt {attempt + 1}: {str(e)}"
-                    
+                                
                     # Check if it's a retryable error
                     is_retryable = False
                     
@@ -241,7 +240,7 @@ class ImageGenerationService:
                         is_retryable = True
                     elif "503" in error_msg or "429" in error_msg or "serverror" in error_msg:
                         is_retryable = True
-                    
+                                
                     print(f"ERROR: {last_error}")
                     print(f"DEBUG: Error type: {type(e).__name__}, retryable: {is_retryable}")
                     
@@ -249,21 +248,21 @@ class ImageGenerationService:
                     if not is_retryable:
                         print(f"ERROR: Non-retryable error, aborting: {error_msg}")
                         break
-                
-                # Calculate exponential backoff delay (only if we're going to retry)
-                if attempt < MAX_RETRIES - 1:
-                    delay = min(BASE_DELAY * (2 ** attempt), MAX_DELAY)
-                    # Add jitter to prevent thundering herd
-                    jitter = delay * 0.1 * (0.5 + 0.5 * hash(prompt) % 100 / 100)
-                    total_delay = delay + jitter
-                    
-                    print(f"WARNING: Retrying Google image generation in {total_delay:.1f}s...")
-                    await asyncio.sleep(total_delay)
-            
-            # All Google attempts failed - fallback to OpenAI
-            print(f"ERROR: Google image generation failed after {MAX_RETRIES} attempts. Last error: {last_error}")
-            print("INFO: Falling back to OpenAI...")
-            return await self._fallback_to_openai(prompt, output_directory)
+                            
+                    # Calculate exponential backoff delay (only if we're going to retry)
+                    if attempt < MAX_RETRIES - 1:
+                        delay = min(BASE_DELAY * (2 ** attempt), MAX_DELAY)
+                        # Add jitter to prevent thundering herd
+                        jitter = delay * 0.1 * (0.5 + 0.5 * hash(prompt) % 100 / 100)
+                        total_delay = delay + jitter
+                        
+                        print(f"WARNING: Retrying Google image generation in {total_delay:.1f}s...")
+                        await asyncio.sleep(total_delay)
+                        
+                        # All Google attempts failed - fallback to OpenAI
+                        print(f"ERROR: Google image generation failed after {MAX_RETRIES} attempts. Last error: {last_error}")
+                        print("INFO: Falling back to OpenAI...")
+                        return await self._fallback_to_openai(prompt, output_directory)
 
     async def _fallback_to_openai(self, prompt: str, output_directory: str) -> str:
         """
