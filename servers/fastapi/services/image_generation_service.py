@@ -87,13 +87,13 @@ class ImageGenerationService:
                         return result
                     else:
                         # Storage key - wrap in ImageAsset
-                    return ImageAsset(
-                            path=result,
-                        extras={
-                            "prompt": prompt.prompt,
-                            "theme_prompt": prompt.theme_prompt,
-                        },
-                    )
+                        return ImageAsset(
+                                path=result,
+                            extras={
+                                "prompt": prompt.prompt,
+                                "theme_prompt": prompt.theme_prompt,
+                            },
+                        )
                 else:
                     # Unexpected return type
                     return "/static/images/placeholder.jpg"
