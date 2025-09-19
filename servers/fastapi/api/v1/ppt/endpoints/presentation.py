@@ -62,11 +62,12 @@ async def get_presentation(
     user_id = get_user_id_from_request(request)
     presentation = await validate_presentation_ownership(id, user_id, sql_session)
     
-    slides = await sql_session.scalars(
+    slide_result = await sql_session.scalars(
         select(SlideModel)
         .where(SlideModel.presentation == id)
         .order_by(SlideModel.index)
     )
+    slides = list(slide_result)
     # Re-sign image URLs for any stored storage keys
     storage = get_storage()
     for slide in slides:
@@ -120,8 +121,12 @@ async def get_all_presentations(request: Request, sql_session: AsyncSession = De
             .where(SlideModel.presentation == presentation.id)
             .where(SlideModel.index == 0)
         )
+        # Return even if no slides yet (e.g., outlines done but slides not generated)
         if not first_slide:
-            return None
+            return PresentationWithSlides(
+                **presentation.model_dump(),
+                slides=[],
+            )
         return PresentationWithSlides(
             **presentation.model_dump(),
             slides=[first_slide],
