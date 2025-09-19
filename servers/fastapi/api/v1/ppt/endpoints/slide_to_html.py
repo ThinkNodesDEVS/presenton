@@ -3,6 +3,7 @@ import base64
 from datetime import datetime
 from typing import Optional, List, Dict
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends
+import aiohttp
 from pydantic import BaseModel
 from openai import OpenAI
 from openai import APIError
@@ -403,44 +404,64 @@ async def convert_slide_to_html(request: SlideToHtmlRequest):
         # Resolve image path to actual file system path
         image_path = request.image
         
-        # Handle different path formats
-        if image_path.startswith("/app_data/images/"):
-            # Remove the /app_data/images/ prefix and join with actual images directory
-            relative_path = image_path[len("/app_data/images/"):]
-            actual_image_path = os.path.join(get_images_directory(), relative_path)
-        elif image_path.startswith("/static/"):
-            # Handle static files
-            relative_path = image_path[len("/static/"):]
-            actual_image_path = os.path.join("static", relative_path)
+        base64_image = None
+        media_type = 'image/png'
+
+        # Support HTTP(S) URLs by downloading into memory
+        if image_path.startswith("http://") or image_path.startswith("https://"):
+            async with aiohttp.ClientSession(trust_env=True) as session:
+                async with session.get(image_path) as resp:
+                    if resp.status != 200:
+                        raise HTTPException(status_code=404, detail=f"Image file not found: {image_path}")
+                    image_content = await resp.read()
+                    base64_image = base64.b64encode(image_content).decode('utf-8')
+                    ext = os.path.splitext(image_path)[1].lower()
+                    media_type = {
+                        '.png': 'image/png',
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.gif': 'image/gif',
+                        '.webp': 'image/webp'
+                    }.get(ext, 'image/png')
         else:
-            # Assume it's already a full path or relative to images directory
-            if os.path.isabs(image_path):
-                actual_image_path = image_path
+            # Handle different local path formats
+            if image_path.startswith("/app_data/images/"):
+                # Remove the /app_data/images/ prefix and join with actual images directory
+                relative_path = image_path[len("/app_data/images/"):]
+                actual_image_path = os.path.join(get_images_directory(), relative_path)
+            elif image_path.startswith("/static/"):
+                # Handle static files
+                relative_path = image_path[len("/static/"):]
+                actual_image_path = os.path.join("static", relative_path)
             else:
-                actual_image_path = os.path.join(get_images_directory(), image_path)
-        
-        # Check if image file exists
-        if not os.path.exists(actual_image_path):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Image file not found: {image_path}"
-            )
-        
-        # Read and encode image to base64
-        with open(actual_image_path, "rb") as image_file:
-            image_content = image_file.read()
-        base64_image = base64.b64encode(image_content).decode('utf-8')
-        
-        # Determine media type from file extension
-        file_extension = os.path.splitext(actual_image_path)[1].lower()
-        media_type_map = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.gif': 'image/gif',
-            '.webp': 'image/webp'
-        }
-        media_type = media_type_map.get(file_extension, 'image/png')
+                # Assume it's already a full path or relative to images directory
+                if os.path.isabs(image_path):
+                    actual_image_path = image_path
+                else:
+                    actual_image_path = os.path.join(get_images_directory(), image_path)
+
+            # Check if image file exists
+            if not os.path.exists(actual_image_path):
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Image file not found: {image_path}"
+                )
+
+            # Read and encode image to base64
+            with open(actual_image_path, "rb") as image_file:
+                image_content = image_file.read()
+            base64_image = base64.b64encode(image_content).decode('utf-8')
+
+            # Determine media type from file extension
+            file_extension = os.path.splitext(actual_image_path)[1].lower()
+            media_type_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.webp': 'image/webp'
+            }
+            media_type = media_type_map.get(file_extension, 'image/png')
         
         # Generate HTML using the extracted function
         html_content = await generate_html_from_slide(
