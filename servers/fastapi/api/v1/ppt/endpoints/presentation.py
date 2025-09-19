@@ -60,32 +60,44 @@ async def get_presentation(
     id: str, request: Request, sql_session: AsyncSession = Depends(get_async_session)
 ):
     user_id = get_user_id_from_request(request)
-    presentation = await validate_presentation_ownership(id, user_id, sql_session)
+    # Attempt to fetch presentation by id first to support adopting orphaned rows
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found or access denied")
+    if not presentation.user_id:
+        # Adopt orphaned presentation to current user
+        presentation.user_id = user_id
+        sql_session.add(presentation)
+        await sql_session.commit()
+    elif presentation.user_id != user_id:
+        raise HTTPException(404, "Presentation not found or access denied")
     
-    slides = await sql_session.scalars(
+    slides_result = await sql_session.scalars(
         select(SlideModel)
         .where(SlideModel.presentation == id)
         .order_by(SlideModel.index)
     )
-    # Re-sign image URLs for any stored storage keys
+    slides = list(slides_result)
+    # Re-sign image URLs for any stored storage keys (async)
     storage = get_storage()
+
+    async def _transform(node):
+        if isinstance(node, dict):
+            for k, v in list(node.items()):
+                if k == "__image_url__" and isinstance(v, str) and not v.startswith("http") and v:
+                    try:
+                        node[k] = await storage.get_signed_url(v, 3600)
+                    except Exception:
+                        node[k] = v
+                else:
+                    await _transform(v)
+        elif isinstance(node, list):
+            for item in node:
+                await _transform(item)
+
     for slide in slides:
         content = slide.content or {}
-        # Walk dict and re-sign keys for __image_url__ if value looks like a storage key (no http)
-        def walk(node):
-            if isinstance(node, dict):
-                for k, v in list(node.items()):
-                    if k == "__image_url__" and isinstance(v, str) and not v.startswith("http") and v:
-                        try:
-                            node[k] = asyncio.get_event_loop().run_until_complete(storage.get_signed_url(v, 3600))
-                        except Exception:
-                            node[k] = v
-                    else:
-                        walk(v)
-            elif isinstance(node, list):
-                for item in node:
-                    walk(item)
-        walk(content)
+        await _transform(content)
         slide.content = content
 
     return PresentationWithSlides(
@@ -121,7 +133,30 @@ async def get_all_presentations(request: Request, sql_session: AsyncSession = De
             .where(SlideModel.index == 0)
         )
         if not first_slide:
-            return None
+            return PresentationWithSlides(
+                **presentation.model_dump(),
+                slides=[],
+            )
+        # Re-sign image URLs on first slide for dashboard cards
+        storage = get_storage()
+        content = first_slide.content or {}
+
+        async def _transform(node):
+            if isinstance(node, dict):
+                for k, v in list(node.items()):
+                    if k == "__image_url__" and isinstance(v, str) and not v.startswith("http") and v:
+                        try:
+                            node[k] = await storage.get_signed_url(v, 3600)
+                        except Exception:
+                            node[k] = v
+                    else:
+                        await _transform(v)
+            elif isinstance(node, list):
+                for item in node:
+                    await _transform(item)
+
+        await _transform(content)
+        first_slide.content = content
         return PresentationWithSlides(
             **presentation.model_dump(),
             slides=[first_slide],
@@ -373,7 +408,23 @@ async def update_presentation(
     updated_presentation = presentation_with_slides.to_presentation_model()
     updated_slides = presentation_with_slides.slides
     user_id = get_user_id_from_request(request)
-    presentation = await validate_presentation_ownership(updated_presentation.id, user_id, sql_session)
+    # Fetch by id to allow adopting orphaned presentations
+    presentation = await sql_session.get(PresentationModel, updated_presentation.id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found or access denied")
+    if not presentation.user_id:
+        presentation.user_id = user_id
+        sql_session.add(presentation)
+        await sql_session.commit()
+    elif presentation.user_id != user_id:
+        raise HTTPException(404, "Presentation not found or access denied")
+    # Preserve original user ownership on update
+    try:
+        updated_presentation.user_id = presentation.user_id
+    except Exception:
+        pass
+
+    # Apply updates
     presentation.sqlmodel_update(updated_presentation)
 
     await sql_session.execute(
