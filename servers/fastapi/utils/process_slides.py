@@ -45,7 +45,14 @@ async def process_slide_and_fetch_assets(
         result = results.pop()
         if isinstance(result, ImageAsset):
             return_assets.append(result)
-            image_dict["__image_url__"] = result.path
+            # Use public URL for a public bucket
+            from services.storage import get_storage
+            storage = get_storage()
+            try:
+                public_url = await storage.get_signed_url(result.path, 3600)
+            except Exception:
+                public_url = result.path
+            image_dict["__image_url__"] = public_url
         else:
             image_dict["__image_url__"] = result
         set_dict_at_path(slide.content, image_path, image_dict)
@@ -154,7 +161,13 @@ async def process_old_and_new_slides_and_fetch_assets(
             fetched_image = new_images[i]
             if isinstance(fetched_image, ImageAsset):
                 new_assets.append(fetched_image)
-                image_url = fetched_image.path
+                # Use public URL for a public bucket
+                from services.storage import get_storage
+                storage = get_storage()
+                try:
+                    image_url = await storage.get_signed_url(fetched_image.path, 3600)
+                except Exception:
+                    image_url = fetched_image.path
             else:
                 image_url = fetched_image
             new_image_dicts[i]["__image_url__"] = image_url
