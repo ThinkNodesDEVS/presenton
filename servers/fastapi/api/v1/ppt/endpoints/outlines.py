@@ -1,6 +1,6 @@
 import asyncio
 import json
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +8,8 @@ from models.presentation_outline_model import PresentationOutlineModel
 from models.sql.presentation import PresentationModel
 from models.sse_response import SSECompleteResponse, SSEResponse, SSEStatusResponse
 from services import TEMP_FILE_SERVICE
-from services.database import get_async_session
+from services.database import get_async_session, async_session_maker
+from utils.auth_utils import get_user_id_from_request, validate_presentation_ownership
 from services.documents_loader import DocumentsLoader
 from services.score_based_chunker import ScoreBasedChunker
 from utils.llm_calls.generate_presentation_outlines import generate_ppt_outline
@@ -18,12 +19,13 @@ OUTLINES_ROUTER = APIRouter(prefix="/outlines", tags=["Outlines"])
 
 @OUTLINES_ROUTER.get("/stream")
 async def stream_outlines(
-    presentation_id: str, sql_session: AsyncSession = Depends(get_async_session)
+    presentation_id: str,
+    request: Request,
+    sql_session: AsyncSession = Depends(get_async_session),
 ):
-    presentation = await sql_session.get(PresentationModel, presentation_id)
-
-    if not presentation:
-        raise HTTPException(status_code=404, detail="Presentation not found")
+    # Validate ownership and fetch presentation using the request's user context
+    user_id = get_user_id_from_request(request)
+    presentation = await validate_presentation_ownership(presentation_id, user_id, sql_session)
 
     temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
 
@@ -85,21 +87,28 @@ async def stream_outlines(
             : presentation.n_slides
         ]
 
-        presentation.outlines = presentation_outlines.model_dump()
-        presentation.title = (
-            presentation_outlines.slides[0]
-            .content[:50]
-            .replace("#", "")
-            .replace("/", "")
-            .replace("\\", "")
-            .replace("\n", "")
-        )
+        # Use a fresh DB session inside the streaming generator to avoid
+        # lifecycle issues with dependency-managed sessions
+        async with async_session_maker() as stream_session:
+            # Re-fetch to ensure latest state and ownership in this session
+            db_presentation = await stream_session.get(PresentationModel, presentation_id)
+            if not db_presentation:
+                raise HTTPException(status_code=404, detail="Presentation not found")
+            db_presentation.outlines = presentation_outlines.model_dump()
+            db_presentation.title = (
+                presentation_outlines.slides[0]
+                .content[:50]
+                .replace("#", "")
+                .replace("/", "")
+                .replace("\\", "")
+                .replace("\n", "")
+            )
+            stream_session.add(db_presentation)
+            await stream_session.commit()
 
-        sql_session.add(presentation)
-        await sql_session.commit()
-
+        # Return the persisted presentation snapshot
         yield SSECompleteResponse(
-            key="presentation", value=presentation.model_dump(mode="json")
+            key="presentation", value=db_presentation.model_dump(mode="json")
         ).to_string()
 
     return StreamingResponse(inner(), media_type="text/event-stream")
