@@ -55,7 +55,7 @@ export const SaveLayoutModal: React.FC<SaveLayoutModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px] bg-white border border-gray-200 rounded-2xl shadow-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Save className="w-5 h-5 text-green-600" />
