@@ -333,6 +333,21 @@ async def stream_presentation(
         structure = presentation.get_structure()
         layout = presentation.get_layout()
         outline = presentation.get_presentation_outline()
+        storage = get_storage()
+
+        async def _transform(node):
+            if isinstance(node, dict):
+                for k, v in list(node.items()):
+                    if k == "__image_url__" and isinstance(v, str) and not v.startswith("http") and v:
+                        try:
+                            node[k] = await storage.get_signed_url(v, 3600)
+                        except Exception:
+                            node[k] = v
+                    else:
+                        await _transform(v)
+            elif isinstance(node, list):
+                for item in node:
+                    await _transform(item)
 
         # These tasks will be gathered and awaited after all slides are generated
         async_assets_generation_tasks = []
@@ -357,6 +372,8 @@ async def stream_presentation(
                 speaker_note=slide_content.get("__speaker_note__", ""),
                 content=slide_content,
             )
+            # Re-sign any storage keys in slide content before sending to client
+            await _transform(slide.content)
             slides.append(slide)
 
             # This will mutate slide
