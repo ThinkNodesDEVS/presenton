@@ -19,6 +19,7 @@ from utils.image_provider import (
     is_pixabay_selected,
     is_gemini_flash_selected,
     is_dalle3_selected,
+    is_gpt_image_selected,
 )
 from utils.randomizers import get_random_uuid
 from typing import Optional
@@ -44,6 +45,8 @@ class ImageGenerationService:
             return self.generate_image_google
         elif is_dalle3_selected():
             return self.generate_image_openai
+        elif is_gpt_image_selected():
+            return self.generate_image_gpt_image_1
         return None
 
     def is_stock_provider_selected(self):
@@ -127,6 +130,31 @@ class ImageGenerationService:
         key = build_user_key(self.user_id, "images", filename)
         await storage.save(key, content, content_type="image/jpeg")
         # Return storage key (re-sign when serving)
+        return key
+
+    async def generate_image_gpt_image_1(self, prompt: str, output_directory: str) -> str:
+        """
+        Generate image using OpenAI's gpt-image-1 model.
+        Returns storage key after uploading the binary.
+        """
+        client = AsyncOpenAI()
+        # gpt-image-1 uses the Images API as well
+        result = await client.images.generate(
+            model="gpt-image-1",
+            prompt=prompt,
+            n=1,
+            size="1024x1024",
+        )
+        image_url = result.data[0].url
+        async with aiohttp.ClientSession(trust_env=True) as session:
+            async with session.get(image_url) as resp:
+                if resp.status != 200:
+                    raise Exception(f"Failed to fetch generated image: {resp.status}")
+                content = await resp.read()
+        filename = f"{get_random_uuid()}.jpg"
+        storage = get_storage()
+        key = build_user_key(self.user_id, "images", filename)
+        await storage.save(key, content, content_type="image/jpeg")
         return key
 
     # async def generate_image_google(self, prompt: str, output_directory: str) -> str:
@@ -267,7 +295,7 @@ class ImageGenerationService:
 
     async def _fallback_to_openai(self, prompt: str, output_directory: str) -> str:
         """
-        Fallback to OpenAI DALL-E 3 when Google fails.
+        Fallback to an OpenAI model  when Google fails.
         """
         try:
             print("INFO: Attempting OpenAI DALL-E 3 fallback...")
@@ -278,7 +306,7 @@ class ImageGenerationService:
                 return "/static/images/placeholder.jpg"
             
             # Use existing OpenAI method
-            result = await self.generate_image_openai(prompt, output_directory)
+            result = await self.generate_image_gpt_image_1(prompt, output_directory)
             print("INFO: OpenAI fallback succeeded")
             return result
             
