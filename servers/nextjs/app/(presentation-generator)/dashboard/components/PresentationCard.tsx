@@ -31,7 +31,7 @@ export const PresentationCard = ({
   id: string;
   title: string;
   created_at: string;
-  slide: any;
+  slide: any | null;
   onDeleted?: (presentationId: string) => void;
   thumbnail?: string;
   isFavorite?: boolean;
@@ -124,7 +124,13 @@ export const PresentationCard = ({
         >
           <div className="absolute bg-transparent z-40 top-0 left-0 w-full h-full" />
           <div className="transform scale-[0.2] flex justify-center items-center origin-top-left  w-[500%] h-[500%]">
-            {renderSlideContent(slide, false)}
+            {slide ? (
+              renderSlideContent(slide, false)
+            ) : (
+              <div className="aspect-video h-full w-full bg-gray-100 flex items-center justify-center text-gray-500">
+                No preview available
+              </div>
+            )}
           </div>
         </div>
 

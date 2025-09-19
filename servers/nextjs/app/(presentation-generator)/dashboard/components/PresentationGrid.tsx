@@ -106,7 +106,7 @@ export const PresentationGrid = ({
             id={presentation.id}
             title={presentation.title}
             created_at={presentation.created_at}
-            slide={presentation.slides[0]}
+            slide={presentation.slides && presentation.slides.length > 0 ? presentation.slides[0] : null}
             onDeleted={onPresentationDeleted}
           />
         ))}
