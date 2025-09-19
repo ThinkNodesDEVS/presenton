@@ -15,7 +15,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("presenton-backend")
+logger = logging.getLogger("decky-backend")
 
 
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")

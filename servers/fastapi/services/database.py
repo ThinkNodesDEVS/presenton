@@ -30,7 +30,7 @@ from utils.db_utils import get_database_url_and_connect_args
 from utils.get_env import get_database_url_env, get_run_migrations_on_start_env
 
 
-logger = logging.getLogger("presenton-backend")
+logger = logging.getLogger("decky-backend")
 
 
 database_url, connect_args = get_database_url_and_connect_args()
