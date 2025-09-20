@@ -222,8 +222,7 @@ class ImageGenerationService:
                     response = await asyncio.wait_for(
                         asyncio.to_thread(
                     client.models.generate_content,
-                    # model="gemini-2.5-flash-image-preview",
-                    model="imagen-4.0-fast-generate-001",
+                    model="gemini-2.5-flash-image-preview",
                     contents=[prompt],
                     config=GenerateContentConfig(response_modalities=["TEXT", "IMAGE"]),
                                 ),
